@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Archive, Trash2, FileText, Loader2 } from 'lucide-react';
+import { ArrowLeft, Archive, Trash2, FileText, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,8 @@ import {
   useArchiveDocument,
   useDeleteDocument,
 } from '@/features/documents/hooks/useDocuments';
+import { NotesPanel } from '@/features/documents/components/NotesPanel';
+import { documentsApi } from '@/api/documents.api';
 
 function Row({ label, value }: { label: string; value?: string | number | null }) {
   if (value == null) return null;
@@ -34,6 +36,18 @@ export function DocumentDetailPage() {
   async function handleDelete() {
     await remove.mutateAsync(id!);
     navigate('/documents');
+  }
+
+  async function handleDownload() {
+    if (!doc) return;
+    const result = await documentsApi.download(doc.documentId);
+    if (result.url) {
+      window.open(result.url, '_blank');
+    } else if (result.payload) {
+      const blob = new Blob([JSON.stringify(result.payload, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    }
   }
 
   if (isLoading) {
@@ -66,6 +80,12 @@ export function DocumentDetailPage() {
         </Button>
 
         <div className="flex gap-2">
+          {doc.state === 'AVAILABLE' && (
+            <Button variant="outline" size="sm" onClick={handleDownload}>
+              <Download className="mr-2 h-4 w-4" />
+              Download
+            </Button>
+          )}
           {doc.state === 'AVAILABLE' && (
             <Button
               variant="outline"
@@ -137,6 +157,9 @@ export function DocumentDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Notes panel */}
+      <NotesPanel documentId={doc.documentId} />
     </div>
   );
 }

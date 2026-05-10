@@ -11,6 +11,7 @@ import { useUploadDocument } from '../hooks/useDocuments';
 const schema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
   tags:  z.string().optional(),
+  note:  z.string().max(10_000).optional(),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -54,6 +55,7 @@ export function UploadForm({ onSuccess }: Props) {
       title:    data.title,
       tags,
       mimeType: file.type || 'application/octet-stream',
+      note:     data.note,
     });
 
     reset();
@@ -138,6 +140,21 @@ export function UploadForm({ onSuccess }: Props) {
           id="tags"
           placeholder="architecture, design, api"
           {...register('tags')}
+        />
+      </div>
+
+      {/* Optional initial note */}
+      <div className="space-y-2">
+        <Label htmlFor="note">
+          Note{' '}
+          <span className="text-xs text-muted-foreground">(optional, stored separately as MongoDB note)</span>
+        </Label>
+        <textarea
+          id="note"
+          rows={3}
+          placeholder="Why are you uploading this document?"
+          className="w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          {...register('note')}
         />
       </div>
 

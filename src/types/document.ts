@@ -39,4 +39,5 @@ export interface UploadDocumentInput {
   mimeType?:      string;
   tags?:          string[];
   payloadEngine?: PayloadEngine;
+  note?:          string;
 }
