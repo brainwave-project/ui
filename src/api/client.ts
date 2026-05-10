@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { useAuthStore } from '@/store/auth.store';
 
 /**
  * Axios base instance — all requests go through Kong (/api prefix).
@@ -14,7 +15,6 @@ export const apiClient = axios.create({
 
 // ── Request interceptor — attach Bearer token ─────────────────────────────
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Lazily import to avoid circular dependency with auth store
   const token = getAccessToken();
   if (token) {
     config.headers.set('Authorization', `Bearer ${token}`);
@@ -68,21 +68,14 @@ apiClient.interceptors.response.use(
   },
 );
 
-// ── Token helpers (bridge to Zustand store without circular import) ───────
+// ── Token helpers ─────────────────────────────────────────────────────────
 
 function getAccessToken(): string | null {
-  try {
-    const raw = localStorage.getItem('bw_auth');
-    return raw ? (JSON.parse(raw) as { accessToken: string }).accessToken : null;
-  } catch { return null; }
+  return useAuthStore.getState().accessToken;
 }
 
 async function refreshAccessToken(): Promise<string> {
-  const raw = localStorage.getItem('bw_auth');
-  const refreshToken: string | null = raw
-    ? (JSON.parse(raw) as { refreshToken: string }).refreshToken
-    : null;
-
+  const { refreshToken, setTokens } = useAuthStore.getState();
   if (!refreshToken) throw new Error('No refresh token');
 
   const res = await axios.post<{ access_token: string; refresh_token: string }>(
@@ -91,10 +84,10 @@ async function refreshAccessToken(): Promise<string> {
   );
 
   const { access_token, refresh_token } = res.data;
-  localStorage.setItem('bw_auth', JSON.stringify({ accessToken: access_token, refreshToken: refresh_token }));
+  setTokens(access_token, refresh_token);
   return access_token;
 }
 
 function clearSession() {
-  localStorage.removeItem('bw_auth');
+  useAuthStore.getState().logout();
 }

@@ -42,11 +42,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'bw_auth',
-      // Only persist tokens — don't persist derived UI state
       partialize: (state) => ({
-        accessToken:  state.accessToken,
-        refreshToken: state.refreshToken,
-        user:         state.user,
+        accessToken:     state.accessToken,
+        refreshToken:    state.refreshToken,
+        user:            state.user,
+        isAuthenticated: state.isAuthenticated,
       }),
     },
   ),

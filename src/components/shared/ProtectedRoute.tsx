@@ -7,9 +7,9 @@ import { useAuthStore } from '@/store/auth.store';
  * Preserves the attempted URL so we can redirect back after login.
  */
 export function ProtectedRoute() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const accessToken = useAuthStore((s) => s.accessToken);
 
-  if (!isAuthenticated) {
+  if (!accessToken) {
     return <Navigate to="/login" replace />;
   }
 

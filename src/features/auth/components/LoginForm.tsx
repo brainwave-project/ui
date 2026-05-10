@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useLogin } from '../hooks/useLogin';
 
 const schema = z.object({
-  username: z.string().email('Enter a valid email'),
+  username: z.string().trim().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
 });
 
@@ -38,11 +38,11 @@ export function LoginForm() {
         <CardContent>
           <form onSubmit={handleSubmit((d) => login.mutate(d))} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Email</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
-                type="email"
-                placeholder="you@brainwave.io"
+                type="text"
+                placeholder="e.g. dev-admin"
                 autoComplete="username"
                 {...register('username')}
               />
