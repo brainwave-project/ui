@@ -35,21 +35,48 @@ export const documentsApi = {
     input: UploadDocumentInput,
     idempotencyKey?: string,
   ): Promise<Document> {
-    const form = new FormData();
-    form.append('file', input.file);
-    form.append('title', input.title);
-    if (input.mimeType) form.append('mimeType', input.mimeType);
-    if (input.tags?.length) form.append('tags', JSON.stringify(input.tags));
-    if (input.payloadEngine) form.append('payloadEngine', input.payloadEngine);
+    return new Promise<Document>((resolve, reject) => {
+      const reader = new FileReader();
 
-    return apiClient
-      .post<Document>('/documents', form, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
-        },
-      })
-      .then((r) => r.data);
+      reader.onload = async (e) => {
+        try {
+          const text = e.target?.result as string;
+
+          let payload: Record<string, unknown> | undefined;
+          try {
+            const parsed = JSON.parse(text);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              payload = parsed as Record<string, unknown>;
+            } else {
+              payload = { content: parsed };
+            }
+          } catch {
+            // not JSON — store as raw text
+            payload = { content: text };
+          }
+
+          const body = {
+            title:         input.title,
+            payloadEngine: input.payloadEngine ?? 'mongo',
+            mimeType:      input.mimeType ?? (input.file.type || 'application/octet-stream'),
+            sizeBytes:     input.file.size,
+            payload,
+          };
+
+          const res = await apiClient.post<Document>('/documents', body, {
+            headers: {
+              ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+            },
+          });
+          resolve(res.data);
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(input.file);
+    });
   },
 
   archive(documentId: string): Promise<Document> {
