@@ -4,9 +4,10 @@ import { Header } from './Header';
 import { useUIStore } from '@/store/ui.store';
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/documents': 'Documents',
-  '/profile':   'Profile',
+  '/dashboard':     'Dashboard',
+  '/documents':     'Documents',
+  '/observability': 'Observability',
+  '/profile':       'Profile',
 };
 
 export function AppLayout() {

@@ -1,12 +1,13 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
-import { LoginPage }         from '@/pages/LoginPage';
-import { DashboardPage }     from '@/pages/DashboardPage';
-import { DocumentsPage }     from '@/pages/DocumentsPage';
-import { DocumentDetailPage } from '@/pages/DocumentDetailPage';
-import { UploadPage }        from '@/pages/UploadPage';
-import { ProfilePage }       from '@/pages/ProfilePage';
+import { LoginPage }           from '@/pages/LoginPage';
+import { DashboardPage }       from '@/pages/DashboardPage';
+import { DocumentsPage }       from '@/pages/DocumentsPage';
+import { DocumentDetailPage }  from '@/pages/DocumentDetailPage';
+import { UploadPage }          from '@/pages/UploadPage';
+import { ProfilePage }         from '@/pages/ProfilePage';
+import { ObservabilityPage }   from '@/pages/ObservabilityPage';
 
 export const router = createBrowserRouter([
   /* Public */
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
           { path: 'documents',        element: <DocumentsPage /> },
           { path: 'documents/upload', element: <UploadPage /> },
           { path: 'documents/:id',    element: <DocumentDetailPage /> },
+          { path: 'observability',    element: <ObservabilityPage /> },
           { path: 'profile',          element: <ProfilePage /> },
         ],
       },
