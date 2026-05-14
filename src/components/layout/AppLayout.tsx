@@ -6,6 +6,7 @@ import { useUIStore } from '@/store/ui.store';
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard':     'Dashboard',
   '/documents':     'Documents',
+  '/activity':      'Activity',
   '/observability': 'Observability',
   '/profile':       'Profile',
 };

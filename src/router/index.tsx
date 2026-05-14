@@ -8,6 +8,7 @@ import { DocumentDetailPage }  from '@/pages/DocumentDetailPage';
 import { UploadPage }          from '@/pages/UploadPage';
 import { ProfilePage }         from '@/pages/ProfilePage';
 import { ObservabilityPage }   from '@/pages/ObservabilityPage';
+import { ActivityPage }        from '@/pages/ActivityPage';
 
 export const router = createBrowserRouter([
   /* Public */
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
           { path: 'documents/upload', element: <UploadPage /> },
           { path: 'documents/:id',    element: <DocumentDetailPage /> },
           { path: 'observability',    element: <ObservabilityPage /> },
+          { path: 'activity',         element: <ActivityPage /> },
           { path: 'profile',          element: <ProfilePage /> },
         ],
       },
