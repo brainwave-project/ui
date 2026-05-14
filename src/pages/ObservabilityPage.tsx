@@ -156,19 +156,24 @@ function ToolButton({ tool }: { tool: ObservabilityTool }) {
   return (
     <Button
       variant="outline"
-      className="h-auto w-full justify-start gap-3 p-4 text-left"
+      // Button defaults to `whitespace-nowrap` — override so the description
+      // wraps instead of overflowing the card. items-start so the icon aligns
+      // to the first line of a multi-line description.
+      className="h-auto w-full items-start justify-start gap-3 whitespace-normal p-4 text-left"
       asChild
     >
       <a href={tool.url} target="_blank" rel="noopener noreferrer">
-        <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
+        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-medium">{tool.label}</span>
-            <ExternalLink className="h-3 w-3 text-muted-foreground" />
+            <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
           </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">{tool.description}</p>
+          <p className="mt-0.5 break-words text-xs text-muted-foreground">
+            {tool.description}
+          </p>
         </div>
-        <Badge variant="secondary" className="shrink-0 text-xs">
+        <Badge variant="secondary" className="mt-0.5 shrink-0 text-xs">
           {tool.badge}
         </Badge>
       </a>
@@ -250,7 +255,7 @@ export function ObservabilityPage() {
           Infrastructure Exporters
         </h2>
         <Section
-          title="Host &amp; Container Metrics"
+          title="Host & Container Metrics"
           description="Node Exporter (OS), cAdvisor (containers), and database exporters"
           tools={INFRA}
         />
