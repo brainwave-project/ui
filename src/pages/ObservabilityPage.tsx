@@ -10,6 +10,7 @@ import {
   ExternalLink,
   ShieldCheck,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -151,31 +152,38 @@ const ADMIN: ObservabilityTool[] = [
 // Components
 // ---------------------------------------------------------------------------
 
-function ToolButton({ tool }: { tool: ObservabilityTool }) {
+function ToolTile({ tool }: { tool: ObservabilityTool }) {
   const Icon = tool.icon;
   return (
     <Button
       variant="outline"
-      // Button defaults to `whitespace-nowrap` — override so the description
-      // wraps instead of overflowing the card. items-start so the icon aligns
-      // to the first line of a multi-line description.
-      className="h-auto w-full items-start justify-start gap-3 whitespace-normal p-4 text-left"
       asChild
+      className="!flex h-auto w-full min-w-0 max-w-full items-start justify-start overflow-hidden border-2 p-0 text-left shadow-sm transition-colors hover:bg-accent/50"
     >
-      <a href={tool.url} target="_blank" rel="noopener noreferrer">
-        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{tool.label}</span>
-            <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+      <a
+        href={tool.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="min-h-0 min-w-0 max-w-full gap-4 overflow-hidden whitespace-normal p-5 no-underline [word-break:break-word]"
+      >
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </div>
+        <div className="min-w-0 flex-1 overflow-hidden space-y-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="min-w-0 break-words text-base font-semibold leading-tight">{tool.label}</span>
+            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
           </div>
-          <p className="mt-0.5 break-words text-xs text-muted-foreground">
+          <Badge
+            variant="secondary"
+            className="inline-flex h-auto max-w-full min-w-0 flex-wrap items-center whitespace-normal rounded-md px-2 py-1 text-left text-xs font-normal leading-snug [word-break:break-word]"
+          >
+            {tool.badge}
+          </Badge>
+          <p className="break-words text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
             {tool.description}
           </p>
         </div>
-        <Badge variant="secondary" className="mt-0.5 shrink-0 text-xs">
-          {tool.badge}
-        </Badge>
       </a>
     </Button>
   );
@@ -185,19 +193,29 @@ interface SectionProps {
   title:       string;
   description: string;
   tools:       ObservabilityTool[];
+  /**
+   * `single` — one tile per row (use inside narrow columns, e.g. three-pillar layout).
+   * `wide` — multi-column when the section spans the full main width (viewport-based cols are OK).
+   */
+  toolColumns?: 'single' | 'wide';
 }
 
-function Section({ title, description, tools }: SectionProps) {
+function Section({ title, description, tools, toolColumns = 'wide' }: SectionProps) {
+  const gridClass =
+    toolColumns === 'single'
+      ? 'grid grid-cols-1 gap-3'
+      : 'grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3';
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+    <Card className="min-w-0">
+      <CardHeader className="min-w-0 space-y-1 pb-4">
+        <CardTitle className="break-words text-lg">{title}</CardTitle>
+        <CardDescription className="break-words text-sm leading-relaxed">{description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="grid gap-2 sm:grid-cols-2">
+      <CardContent className="min-w-0 pt-0">
+        <div className={cn(gridClass, 'min-w-0 [&>*]:min-w-0')}>
           {tools.map((tool) => (
-            <ToolButton key={tool.id} tool={tool} />
+            <ToolTile key={tool.id} tool={tool} />
           ))}
         </div>
       </CardContent>
@@ -228,21 +246,24 @@ export function ObservabilityPage() {
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Three Pillars of Observability
         </h2>
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid min-w-0 gap-4 lg:grid-cols-3">
           <Section
             title="Metrics"
             description="Time-series data, dashboards, and SLO alerting"
             tools={METRICS}
+            toolColumns="single"
           />
           <Section
             title="Logs"
             description="Structured log aggregation via Loki + Promtail"
             tools={LOGS}
+            toolColumns="single"
           />
           <Section
             title="Traces"
             description="Distributed request tracing via OTel Collector + Tempo"
             tools={TRACES}
+            toolColumns="single"
           />
         </div>
       </div>
