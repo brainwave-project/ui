@@ -80,7 +80,7 @@ const TRACES: ObservabilityTool[] = [
     id:          'otel-zpages',
     label:       'OTel Collector zPages',
     description: 'Live pipeline debug — running spans, exporter status, trace samples',
-    url:         'http://localhost:55679',
+    url:         'http://localhost:5679',
     icon:        Activity,
     badge:       'OTel Pipeline',
   },
