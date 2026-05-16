@@ -58,10 +58,10 @@ const METRICS: ObservabilityTool[] = [
 
 const LOGS: ObservabilityTool[] = [
   {
-    id:          'loki',
-    label:       'Loki',
-    description: 'Log aggregation API — query LogQL directly or via Grafana',
-    url:         'http://localhost:3100/ready',
+    id:          'loki-explore',
+    label:       'View Logs (Grafana → Loki)',
+    description: 'Open Grafana Explore with Loki preselected — run LogQL queries against all service logs',
+    url:         'http://localhost:3030/explore?left=%7B%22datasource%22:%22loki%22%7D',
     icon:        Layers,
     badge:       'Logs',
   },
@@ -69,10 +69,10 @@ const LOGS: ObservabilityTool[] = [
 
 const TRACES: ObservabilityTool[] = [
   {
-    id:          'tempo',
-    label:       'Tempo',
-    description: 'Trace backend API — explore via Grafana Explore → Tempo datasource',
-    url:         'http://localhost:3200/ready',
+    id:          'tempo-explore',
+    label:       'View Traces (Grafana → Tempo)',
+    description: 'Open Grafana Explore with Tempo preselected — run TraceQL queries and view flame graphs',
+    url:         'http://localhost:3030/explore?left=%7B%22datasource%22:%22tempo%22%7D',
     icon:        GitBranch,
     badge:       'Traces',
   },
