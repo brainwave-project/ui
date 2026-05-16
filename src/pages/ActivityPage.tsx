@@ -3,7 +3,6 @@ import { auditApi } from '@/api/audit.api';
 import type { AuditEvent, AuditQuery } from '@/types/audit';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
@@ -16,21 +15,30 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const ACTION_META: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  LOGIN_SUCCESS:        { label: 'Login',            icon: LogIn,      color: 'text-green-500' },
-  LOGIN_FAILURE:        { label: 'Login Failed',     icon: LogIn,      color: 'text-red-500'   },
-  LOGOUT:               { label: 'Logout',           icon: LogOut,     color: 'text-slate-500' },
-  TOKEN_REFRESHED:      { label: 'Token Refreshed',  icon: RefreshCw,  color: 'text-blue-400'  },
-  USER_CREATED:         { label: 'User Created',     icon: UserPlus,   color: 'text-green-500' },
-  USER_STATUS_CHANGED:  { label: 'Status Changed',   icon: UserCog,    color: 'text-yellow-500'},
-  USER_ROLES_ASSIGNED:  { label: 'Roles Assigned',   icon: ShieldCheck,color: 'text-purple-500'},
-  USER_DELETED:         { label: 'User Deleted',     icon: UserX,      color: 'text-red-500'   },
-  DOCUMENT_UPLOADED:    { label: 'Document Uploaded',icon: FileUp,     color: 'text-green-500' },
-  DOCUMENT_DOWNLOADED:  { label: 'Document Downloaded',icon: FileDown, color: 'text-blue-500'  },
-  DOCUMENT_ARCHIVED:    { label: 'Document Archived',icon: Archive,    color: 'text-orange-500'},
-  DOCUMENT_DELETED:     { label: 'Document Deleted', icon: Trash2,     color: 'text-red-500'   },
-  NOTE_CREATED:         { label: 'Note Created',     icon: StickyNote, color: 'text-teal-500'  },
+const ACTION_META: Record<string, { label: string; icon: React.ElementType; color: string; group: string }> = {
+  LOGIN_SUCCESS:        { label: 'Login',              icon: LogIn,      color: 'text-green-500',  group: 'Authentication' },
+  LOGIN_FAILURE:        { label: 'Login Failed',       icon: LogIn,      color: 'text-red-500',    group: 'Authentication' },
+  LOGOUT:               { label: 'Logout',             icon: LogOut,     color: 'text-slate-500',  group: 'Authentication' },
+  TOKEN_REFRESHED:      { label: 'Token Refreshed',    icon: RefreshCw,  color: 'text-blue-400',   group: 'Authentication' },
+  USER_CREATED:         { label: 'User Created',       icon: UserPlus,   color: 'text-green-500',  group: 'User Management' },
+  USER_STATUS_CHANGED:  { label: 'Status Changed',     icon: UserCog,    color: 'text-yellow-500', group: 'User Management' },
+  USER_ROLES_ASSIGNED:  { label: 'Roles Assigned',     icon: ShieldCheck,color: 'text-purple-500', group: 'User Management' },
+  USER_DELETED:         { label: 'User Deleted',       icon: UserX,      color: 'text-red-500',    group: 'User Management' },
+  DOCUMENT_UPLOADED:    { label: 'Document Uploaded',  icon: FileUp,     color: 'text-green-500',  group: 'Documents' },
+  DOCUMENT_DOWNLOADED:  { label: 'Document Downloaded',icon: FileDown,   color: 'text-blue-500',   group: 'Documents' },
+  DOCUMENT_ARCHIVED:    { label: 'Document Archived',  icon: Archive,    color: 'text-orange-500', group: 'Documents' },
+  DOCUMENT_DELETED:     { label: 'Document Deleted',   icon: Trash2,     color: 'text-red-500',    group: 'Documents' },
+  NOTE_CREATED:         { label: 'Note Created',       icon: StickyNote, color: 'text-teal-500',   group: 'Notes' },
 };
+
+// Pre-group action keys for the dropdown so options render in a stable order.
+const ACTION_GROUPS: Record<string, Array<{ value: string; label: string }>> = (() => {
+  const groups: Record<string, Array<{ value: string; label: string }>> = {};
+  for (const [value, meta] of Object.entries(ACTION_META)) {
+    (groups[meta.group] ??= []).push({ value, label: meta.label });
+  }
+  return groups;
+})();
 
 function getActionMeta(action: string) {
   return ACTION_META[action] ?? { label: action, icon: AlertCircle, color: 'text-slate-400' };
@@ -49,7 +57,7 @@ const SERVICE_BADGE: Record<string, string> = {
   'know-hub':  'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300',
 };
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 5;
 
 // ---------------------------------------------------------------------------
 // Event row
@@ -115,12 +123,22 @@ function FilterBar({ query, onChange }: FilterBarProps) {
     <div className="flex flex-wrap gap-3 items-end">
       <div className="grid gap-1">
         <Label className="text-xs">Action</Label>
-        <Input
-          className="h-8 w-44 text-sm"
-          placeholder="e.g. DOCUMENT_UPLOADED"
+        <select
+          className="h-8 w-56 rounded-md border bg-background px-2 text-sm"
           value={query.action ?? ''}
           onChange={(e) => onChange({ ...query, action: e.target.value || undefined, offset: 0 })}
-        />
+        >
+          <option value="">All actions</option>
+          {Object.entries(ACTION_GROUPS).map(([group, options]) => (
+            <optgroup key={group} label={group}>
+              {options.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
       </div>
       <div className="grid gap-1">
         <Label className="text-xs">Service</Label>

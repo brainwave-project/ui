@@ -60,10 +60,28 @@ const config: Config = {
           from: { height: 'var(--radix-accordion-content-height)' },
           to:   { height: '0' },
         },
+        // Staggered card entrance on page load
+        'fade-in-up': {
+          '0%':   { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        // Slow gradient drift used on category headers
+        'gradient-shift': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%':      { backgroundPosition: '100% 50%' },
+        },
+        // Soft pulsing dot for the "live" indicator
+        'pulse-dot': {
+          '0%, 100%': { opacity: '1',   transform: 'scale(1)' },
+          '50%':      { opacity: '0.6', transform: 'scale(1.15)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up':   'accordion-up 0.2s ease-out',
+        'fade-in-up':     'fade-in-up 0.5s ease-out both',
+        'gradient-shift': 'gradient-shift 8s ease infinite',
+        'pulse-dot':      'pulse-dot 2s ease-in-out infinite',
       },
     },
   },
