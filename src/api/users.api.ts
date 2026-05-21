@@ -1,10 +1,22 @@
 import { apiClient } from './client';
-import type { User, AccountStatus } from '@/types/user';
+import type { User, AccountStatus, UserListResult, AdminCreateUserPayload } from '@/types/user';
 
 export const usersApi = {
+  list(params?: { limit?: number; offset?: number; status?: AccountStatus }): Promise<UserListResult> {
+    return apiClient
+      .get<UserListResult>('/users', { params })
+      .then((r) => r.data);
+  },
+
   get(userId: string): Promise<User> {
     return apiClient
       .get<User>(`/users/${userId}`)
+      .then((r) => r.data);
+  },
+
+  adminCreate(payload: AdminCreateUserPayload): Promise<User> {
+    return apiClient
+      .post<User>('/users/admin', payload)
       .then((r) => r.data);
   },
 
