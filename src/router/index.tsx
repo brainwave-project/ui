@@ -10,6 +10,7 @@ import { ProfilePage }         from '@/pages/ProfilePage';
 import { ObservabilityPage }   from '@/pages/ObservabilityPage';
 import { ActivityPage }        from '@/pages/ActivityPage';
 import { UsersPage }           from '@/pages/UsersPage';
+import { AdminPage }           from '@/pages/AdminPage';
 
 export const router = createBrowserRouter([
   /* Public */
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
           { path: 'documents/upload', element: <UploadPage /> },
           { path: 'documents/:id',    element: <DocumentDetailPage /> },
           { path: 'users',            element: <UsersPage /> },
+          { path: 'admin',            element: <AdminPage /> },
           { path: 'observability',    element: <ObservabilityPage /> },
           { path: 'activity',         element: <ActivityPage /> },
           { path: 'profile',          element: <ProfilePage /> },
