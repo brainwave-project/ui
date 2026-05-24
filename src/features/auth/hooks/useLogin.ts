@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import type { AxiosError } from 'axios';
 import { authApi } from '@/api/auth.api';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
@@ -33,7 +34,14 @@ export function useLogin() {
       } catch { /* token decode failed — user state left null, no crash */ }
       navigate('/dashboard');
     },
-    onError() {
+    onError(err, variables) {
+      const axiosErr = err as AxiosError<{ error?: string }>;
+      // Keycloak user has UPDATE_PASSWORD required action (temporary password) — redirect
+      // to our own set-password page instead of showing a generic error.
+      if (axiosErr.response?.data?.error === 'PASSWORD_CHANGE_REQUIRED') {
+        navigate(`/set-password?username=${encodeURIComponent(variables.username)}`);
+        return;
+      }
       addToast({ type: 'error', message: 'Invalid credentials. Please try again.' });
     },
   });

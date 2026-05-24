@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { TokenResponse, LoginCredentials } from '@/types/auth';
+import type { TokenResponse, LoginCredentials, SetPasswordRequest } from '@/types/auth';
 
 // Auth calls bypass the interceptor (no Bearer token yet)
 const plainClient = axios.create({ baseURL: '/api', timeout: 15_000 });
@@ -24,6 +24,17 @@ export const authApi = {
   refresh(refreshToken: string): Promise<TokenResponse> {
     return plainClient
       .post<TokenResponse>('/auth/refresh', { refresh_token: refreshToken })
+      .then((r) => r.data);
+  },
+
+  /**
+   * Sets a permanent password for a user that logged in with a temporary one.
+   * Backend uses Keycloak Admin API to update the password, then auto-logs in
+   * and returns fresh tokens — the frontend lands straight on the dashboard.
+   */
+  setPassword(req: SetPasswordRequest): Promise<TokenResponse> {
+    return plainClient
+      .post<TokenResponse>('/auth/set-password', req)
       .then((r) => r.data);
   },
 };

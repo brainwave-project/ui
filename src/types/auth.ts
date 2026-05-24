@@ -16,3 +16,8 @@ export interface AuthUser {
   roles: string[];
   exp:   number;
 }
+
+export interface SetPasswordRequest {
+  username:     string;
+  new_password: string;
+}

@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { LoginPage }           from '@/pages/LoginPage';
+import { SetPasswordPage }     from '@/pages/SetPasswordPage';
 import { DashboardPage }       from '@/pages/DashboardPage';
 import { DocumentsPage }       from '@/pages/DocumentsPage';
 import { DocumentDetailPage }  from '@/pages/DocumentDetailPage';
@@ -17,6 +18,10 @@ export const router = createBrowserRouter([
   {
     path:    '/login',
     element: <LoginPage />,
+  },
+  {
+    path:    '/set-password',
+    element: <SetPasswordPage />,
   },
 
   /* Protected shell */
