@@ -6,6 +6,7 @@ import { SetPasswordPage }     from '@/pages/SetPasswordPage';
 import { DashboardPage }       from '@/pages/DashboardPage';
 import { DocumentsPage }       from '@/pages/DocumentsPage';
 import { DocumentDetailPage }  from '@/pages/DocumentDetailPage';
+import { SearchPage }          from '@/pages/SearchPage';
 import { UploadPage }          from '@/pages/UploadPage';
 import { ProfilePage }         from '@/pages/ProfilePage';
 import { ObservabilityPage }   from '@/pages/ObservabilityPage';
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true,              element: <Navigate to="/dashboard" replace /> },
           { path: 'dashboard',        element: <DashboardPage /> },
+          { path: 'search',           element: <SearchPage /> },
           { path: 'documents',        element: <DocumentsPage /> },
           { path: 'documents/upload', element: <UploadPage /> },
           { path: 'documents/:id',    element: <DocumentDetailPage /> },

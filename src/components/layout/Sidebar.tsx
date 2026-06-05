@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, LogOut, Brain, Activity, ClipboardList, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, LogOut, Brain, Activity, ClipboardList, ShieldCheck, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { useAuthStore } from '@/store/auth.store';
@@ -7,6 +7,7 @@ import { authApi } from '@/api/auth.api';
 
 const navItems = [
   { to: '/dashboard',     icon: LayoutDashboard, label: 'Dashboard'      },
+  { to: '/search',        icon: Sparkles,        label: 'Search'         },
   { to: '/documents',     icon: FileText,        label: 'Documents'      },
   { to: '/activity',      icon: ClipboardList,   label: 'Activity'       },
   { to: '/admin',         icon: ShieldCheck,     label: 'Administration' },

@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Archive, Trash2, FileText, Loader2, Download } from 'lucide-react';
+import { ArrowLeft, Archive, Trash2, FileText, Loader2, Download, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,10 @@ import {
 } from '@/features/documents/hooks/useDocuments';
 import { NotesPanel } from '@/features/documents/components/NotesPanel';
 import { documentsApi } from '@/api/documents.api';
+import { EmbeddingStatusBadge } from '@/features/semantic/components/EmbeddingStatusBadge';
+import { SimilarDocsPanel } from '@/features/semantic/components/SimilarDocsPanel';
+import { useEmbeddingStatus, useReindexDocument } from '@/features/semantic/hooks/useSemantic';
+import { useAuthStore } from '@/store/auth.store';
 
 function Row({ label, value }: { label: string; value?: string | number | null }) {
   if (value == null) return null;
@@ -28,6 +32,9 @@ export function DocumentDetailPage() {
   const { data: doc, isLoading, isError } = useDocument(id!);
   const archive    = useArchiveDocument();
   const remove     = useDeleteDocument();
+  const reindex    = useReindexDocument();
+  const isAdmin    = useAuthStore((s) => s.user?.roles.includes('ADMIN') ?? false);
+  const { data: embedding } = useEmbeddingStatus(id!, { poll: true });
 
   async function handleArchive() {
     await archive.mutateAsync(id!);
@@ -80,6 +87,19 @@ export function DocumentDetailPage() {
         </Button>
 
         <div className="flex gap-2">
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={reindex.isPending}
+              onClick={() => reindex.mutate(doc.documentId)}
+            >
+              {reindex.isPending
+                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                : <RefreshCw className="mr-2 h-4 w-4" />}
+              Reindex
+            </Button>
+          )}
           {doc.state === 'AVAILABLE' && (
             <Button variant="outline" size="sm" onClick={handleDownload}>
               <Download className="mr-2 h-4 w-4" />
@@ -122,7 +142,10 @@ export function DocumentDetailPage() {
             <FileText className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
             <div className="space-y-1">
               <CardTitle className="text-base">{doc.title}</CardTitle>
-              <Badge variant="secondary">{doc.state}</Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary">{doc.state}</Badge>
+                {embedding && <EmbeddingStatusBadge status={embedding.embeddingStatus} />}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -157,6 +180,9 @@ export function DocumentDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Related documents (semantic) */}
+      <SimilarDocsPanel documentId={doc.documentId} />
 
       {/* Notes panel */}
       <NotesPanel documentId={doc.documentId} />
