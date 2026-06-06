@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { FileText, Sparkles, ArrowUpRight, Layers } from 'lucide-react';
+import { FileText, Sparkles, ArrowUpRight, Layers, Info } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { EmbeddingStatusBadge } from './EmbeddingStatusBadge';
@@ -86,7 +86,13 @@ export function SearchResultCard({ hit, query, rank, onFindSimilar }: Props) {
               <Sparkles className="h-3 w-3" />
               Relevance
             </span>
-            <span className="font-medium tabular-nums">{pct}% similarity</span>
+            <span
+              className="flex cursor-help items-center gap-1 font-medium tabular-nums"
+              title="Cosine similarity between your query vector and the closest matching chunk — measures conceptual closeness in 768-dim embedding space (nomic-embed-text model)"
+            >
+              {pct}% similarity
+              <Info className="h-3 w-3 text-muted-foreground" />
+            </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
@@ -99,11 +105,12 @@ export function SearchResultCard({ hit, query, rank, onFindSimilar }: Props) {
         {/* Transparency row + actions */}
         <div className="flex items-center justify-between pt-1">
           <span
-            className="flex items-center gap-1 text-xs text-muted-foreground"
-            title="Reciprocal Rank Fusion score — combines vector similarity and keyword rank"
+            className="flex cursor-help items-center gap-1 text-xs text-muted-foreground"
+            title="Hybrid RRF score — Reciprocal Rank Fusion (k=60) adds 1/(60+vector_rank) + 1/(60+keyword_rank). A document strong in both ANN similarity and exact keyword match rises to the top."
           >
             <Layers className="h-3 w-3" />
-            fusion {hit.rrfScore.toFixed(4)}
+            RRF score {hit.rrfScore.toFixed(4)}
+            <Info className="h-3 w-3" />
           </span>
           <div className="flex gap-1">
             {onFindSimilar && (

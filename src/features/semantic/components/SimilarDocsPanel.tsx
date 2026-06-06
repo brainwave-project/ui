@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Sparkles, Loader2, FileText } from 'lucide-react';
+import { Sparkles, Loader2, FileText, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSimilarDocuments } from '../hooks/useSemantic';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,13 @@ export function SimilarDocsPanel({ documentId }: Props) {
           <Sparkles className="h-4 w-4 text-primary" />
           Related documents
         </CardTitle>
+        <p
+          className="flex cursor-help items-center gap-1 text-xs text-muted-foreground"
+          title="Similarity = cosine distance between each candidate's chunk-embedding centroid and this document's centroid, computed in 768-dim nomic-embed-text space. Documents are chunked at 512 tokens / 64 overlap before embedding."
+        >
+          <Info className="h-3 w-3 shrink-0" />
+          Ranked by cosine similarity to this document's embedding centroid
+        </p>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -47,9 +54,10 @@ export function SimilarDocsPanel({ documentId }: Props) {
                     </span>
                     <span
                       className={cn(
-                        'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums',
+                        'shrink-0 cursor-help rounded-full px-2 py-0.5 text-xs font-medium tabular-nums',
                         pct >= 70 ? 'bg-emerald-100 text-emerald-800' : 'bg-muted text-muted-foreground',
                       )}
+                      title="Cosine similarity (0–100%). ≥ 70% = highly related; lower = loosely related."
                     >
                       {pct}% similarity
                     </span>

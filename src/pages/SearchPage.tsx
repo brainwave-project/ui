@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Sparkles, Zap, Loader2, SearchX, SlidersHorizontal } from 'lucide-react';
+import { Search, Sparkles, Zap, Loader2, SearchX, SlidersHorizontal, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -121,6 +121,33 @@ export function SearchPage() {
                 ? 'Hybrid mode fuses semantic (vector) ranking with exact keyword matches via Reciprocal Rank Fusion. A result strong in both signals rises to the top.'
                 : 'Vector-only mode ranks purely by conceptual (cosine) similarity — best for fuzzy, meaning-based queries.'}
             </p>
+            <div className="mt-3 space-y-1.5 border-t pt-3">
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <Info className="mt-0.5 h-3 w-3 shrink-0 text-primary/60" />
+                <span>
+                  <strong className="text-foreground">Hybrid RRF —</strong>{' '}
+                  score = 1/(60 + vector_rank) + 1/(60 + keyword_rank). Merges ANN vector search with
+                  Postgres full-text search so exact keyword matches boost conceptually close results.
+                </span>
+              </p>
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <Info className="mt-0.5 h-3 w-3 shrink-0 text-primary/60" />
+                <span>
+                  <strong className="text-foreground">Chunking policy —</strong>{' '}
+                  documents are split into 512-token windows with 64-token overlap before embedding.
+                  Search finds the best matching chunk, not the whole document.
+                </span>
+              </p>
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <Info className="mt-0.5 h-3 w-3 shrink-0 text-primary/60" />
+                <span>
+                  <strong className="text-foreground">Vector metric —</strong>{' '}
+                  cosine similarity in 768-dim space via{' '}
+                  <span className="font-mono">nomic-embed-text</span> (local Ollama, no external API).
+                  Threshold filters out chunks below {Math.round(minScore * 100)}% conceptual match.
+                </span>
+              </p>
+            </div>
           </div>
         )}
       </form>
