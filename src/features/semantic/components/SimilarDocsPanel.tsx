@@ -51,7 +51,7 @@ export function SimilarDocsPanel({ documentId }: Props) {
                         pct >= 70 ? 'bg-emerald-100 text-emerald-800' : 'bg-muted text-muted-foreground',
                       )}
                     >
-                      {pct}%
+                      {pct}% similarity
                     </span>
                   </Link>
                 </li>

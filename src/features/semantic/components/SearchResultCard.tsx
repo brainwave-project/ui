@@ -86,7 +86,7 @@ export function SearchResultCard({ hit, query, rank, onFindSimilar }: Props) {
               <Sparkles className="h-3 w-3" />
               Relevance
             </span>
-            <span className="font-medium tabular-nums">{pct}%</span>
+            <span className="font-medium tabular-nums">{pct}% similarity</span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
