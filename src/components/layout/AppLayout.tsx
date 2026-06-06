@@ -1,12 +1,15 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { AuroraBackground } from '@/components/ai/AuroraBackground';
 import { useUIStore } from '@/store/ui.store';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard':     'Dashboard',
+  '/search':        'Neural Search',
   '/documents':     'Documents',
   '/activity':      'Activity',
+  '/admin':         'Administration',
   '/observability': 'Observability',
   '/profile':       'Profile',
 };
@@ -17,12 +20,15 @@ export function AppLayout() {
   const title = PAGE_TITLES[pathname] ?? '';
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="relative flex h-screen overflow-hidden">
+      <AuroraBackground />
       <Sidebar open={sidebarOpen} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header title={title} />
         <main className="flex-1 overflow-auto p-6">
-          <Outlet />
+          <div key={pathname} className="animate-fade-in-up">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

@@ -12,19 +12,31 @@ export function Header({ title }: Props) {
   const user = useAuthStore((s) => s.user);
 
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-background px-4">
+    <header className="glass z-[5] flex h-16 items-center justify-between border-b border-white/5 px-4">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Toggle sidebar">
           <PanelLeft className="h-4 w-4" />
         </Button>
-        {title && <h1 className="text-sm font-semibold">{title}</h1>}
+        {title && (
+          <div className="flex items-center gap-2">
+            <span className="h-4 w-px bg-gradient-to-b from-transparent via-neon/60 to-transparent" />
+            <h1 className="font-display text-sm font-semibold tracking-wide text-foreground">
+              {title}
+            </h1>
+          </div>
+        )}
       </div>
 
       {user && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="hidden sm:block">{user.email}</span>
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-            {user.email[0]?.toUpperCase()}
+        <div className="flex items-center gap-3 text-sm">
+          <span className="hidden font-mono text-xs text-muted-foreground sm:block">
+            {user.email}
+          </span>
+          <div className="relative">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neon-gradient text-xs font-bold text-primary-foreground shadow-glow-sm">
+              {user.email[0]?.toUpperCase()}
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-400" />
           </div>
         </div>
       )}

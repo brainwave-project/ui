@@ -4,6 +4,7 @@ import { Search, Sparkles, Zap, Loader2, SearchX, SlidersHorizontal, Info } from
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { AICore } from '@/components/ai/AICore';
 import { useSemanticSearch } from '@/features/semantic/hooks/useSemantic';
 import { SearchResultCard } from '@/features/semantic/components/SearchResultCard';
 
@@ -57,13 +58,14 @@ export function SearchPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {/* Hero */}
-      <div className="space-y-2 pt-4 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground">
-          <Sparkles className="h-3.5 w-3.5 text-primary" />
+      <div className="flex flex-col items-center space-y-3 pt-4 text-center">
+        <AICore size={84} className="animate-float-slow" />
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-card/50 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+          <Sparkles className="h-3.5 w-3.5 text-neon" />
           Search by meaning, not just keywords
         </div>
-        <h1 className="bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
-          Semantic Search
+        <h1 className="font-display text-3xl font-bold tracking-tight neon-text text-glow">
+          Neural Search
         </h1>
       </div>
 

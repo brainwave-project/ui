@@ -1,55 +1,179 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  /*
+   * Brainwave AI — futuristic, robotic identity.
+   * Dark-first by default (variables live on :root so the whole app adopts the
+   * neural theme with no toggle). Electric cyan = "neon", violet = "plasma".
+   */
   :root {
-    --background:   0 0% 100%;
-    --foreground:   222.2 84% 4.9%;
-    --card:         0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover:      0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary:      222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary:    210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted:        210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent:       210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive:  0 84.2% 60.2%;
+    --background:   224 47% 4%;
+    --foreground:   200 30% 96%;
+
+    --card:         224 39% 8%;
+    --card-foreground: 200 30% 96%;
+    --popover:      224 42% 7%;
+    --popover-foreground: 200 30% 96%;
+
+    --primary:      187 96% 53%;          /* electric cyan */
+    --primary-foreground: 224 71% 4%;
+
+    --secondary:    258 90% 66%;          /* violet */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted:        223 30% 13%;
+    --muted-foreground: 215 22% 62%;
+
+    --accent:       223 34% 16%;
+    --accent-foreground: 200 30% 96%;
+
+    --destructive:  352 90% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border:       214.3 31.8% 91.4%;
-    --input:        214.3 31.8% 91.4%;
-    --ring:         222.2 84% 4.9%;
-    --radius:       0.5rem;
+
+    --border:       216 34% 17%;
+    --input:        216 34% 17%;
+    --ring:         187 96% 53%;
+    --radius:       0.75rem;
+
+    /* Identity accents */
+    --neon:      187 96% 53%;             /* cyan   */
+    --plasma:    268 90% 66%;             /* violet */
+    --aurora:    315 90% 62%;             /* magenta */
+    --grid-line: 200 60% 60% / 0.05;
   }
 
+  /* Keep .dark identical so any `dark:` utilities resolve correctly. */
   .dark {
-    --background:   222.2 84% 4.9%;
-    --foreground:   210 40% 98%;
-    --card:         222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover:      222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary:      210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary:    217.2 32.6% 17.5%;
+    --background:   224 47% 4%;
+    --foreground:   200 30% 96%;
+    --card:         224 39% 8%;
+    --card-foreground: 200 30% 96%;
+    --popover:      224 42% 7%;
+    --popover-foreground: 200 30% 96%;
+    --primary:      187 96% 53%;
+    --primary-foreground: 224 71% 4%;
+    --secondary:    258 90% 66%;
     --secondary-foreground: 210 40% 98%;
-    --muted:        217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent:       217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive:  0 62.8% 30.6%;
+    --muted:        223 30% 13%;
+    --muted-foreground: 215 22% 62%;
+    --accent:       223 34% 16%;
+    --accent-foreground: 200 30% 96%;
+    --destructive:  352 90% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border:       217.2 32.6% 17.5%;
-    --input:        217.2 32.6% 17.5%;
-    --ring:         212.7 26.8% 83.9%;
+    --border:       216 34% 17%;
+    --input:        216 34% 17%;
+    --ring:         187 96% 53%;
   }
 }
 
 @layer base {
   * { @apply border-border; }
-  body { @apply bg-background text-foreground; }
+
+  html { color-scheme: dark; }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* Deep-space gradient wash sitting under the animated layers. */
+    background-image:
+      radial-gradient(1200px 600px at 85% -10%, hsl(var(--plasma) / 0.18), transparent 60%),
+      radial-gradient(1000px 500px at -10% 0%,  hsl(var(--neon) / 0.14),  transparent 55%),
+      radial-gradient(900px 700px at 50% 120%,  hsl(var(--aurora) / 0.10), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3 { font-family: theme('fontFamily.display'); }
+
+  ::selection {
+    background: hsl(var(--neon) / 0.3);
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  /* Frosted glass surface — the core material of the new UI. */
+  .glass {
+    background: hsl(var(--card) / 0.55);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid hsl(0 0% 100% / 0.06);
+  }
+  .glass-strong {
+    background: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    border: 1px solid hsl(0 0% 100% / 0.08);
+  }
+
+  /* Holographic gradient border. Scoped to its own element via position:relative
+     so the masked 1px ring always tracks the card (never the page). The mask
+     punches out the interior, so content is never overlaid. */
+  .holo-border {
+    position: relative;
+  }
+  .holo-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(var(--neon) / 0.7), transparent 45%, hsl(var(--plasma) / 0.7));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Neon gradient text. */
+  .neon-text {
+    background-image: linear-gradient(120deg, hsl(var(--neon)), hsl(var(--plasma)) 60%, hsl(var(--aurora)));
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+  }
+
+  /* Animated shimmer text fill. */
+  .shimmer-text {
+    background: linear-gradient(110deg, hsl(var(--muted-foreground)) 40%, hsl(var(--neon)) 50%, hsl(var(--muted-foreground)) 60%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
+    @apply animate-shimmer;
+  }
+}
+
+@layer utilities {
+  .text-glow      { text-shadow: 0 0 18px hsl(var(--neon) / 0.6); }
+  .bg-grid {
+    background-image:
+      linear-gradient(to right,  hsl(var(--grid-line)) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--grid-line)) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+  .drop-glow        { filter: drop-shadow(0 0 8px hsl(var(--neon) / 0.7)); }
+  .drop-glow-plasma { filter: drop-shadow(0 0 10px hsl(var(--plasma) / 0.7)); }
+}
+
+/* Futuristic scrollbar */
+::-webkit-scrollbar       { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: hsl(var(--background)); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(hsl(var(--neon) / 0.5), hsl(var(--plasma) / 0.5));
+  border-radius: 9999px;
+  border: 2px solid hsl(var(--background));
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(hsl(var(--neon) / 0.8), hsl(var(--plasma) / 0.8));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
