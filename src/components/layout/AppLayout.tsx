@@ -5,13 +5,16 @@ import { AuroraBackground } from '@/components/ai/AuroraBackground';
 import { useUIStore } from '@/store/ui.store';
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard':     'Dashboard',
-  '/search':        'Neural Search',
-  '/documents':     'Documents',
-  '/activity':      'Activity',
-  '/admin':         'Administration',
-  '/observability': 'Observability',
-  '/profile':       'Profile',
+  '/dashboard':            'Dashboard',
+  '/know-ops/ingestion':   'Know Ops · Ingestion',
+  '/know-ops/retrieval':   'Know Ops · Retrieval Lab',
+  '/know-ops/documents':   'Know Ops · Documents',
+  '/know-ops/chat':        'Know Ops · Chat',
+  '/activity':             'Activity',
+  '/admin':                'Administration',
+  '/observability':        'Observability',
+  '/llm-observability':    'LLM Observability',
+  '/profile':              'Profile',
 };
 
 export function AppLayout() {
