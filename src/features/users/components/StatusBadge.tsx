@@ -5,14 +5,16 @@ const VARIANT: Record<AccountStatus, 'default' | 'secondary' | 'destructive' | '
   active:            'default',
   pending_identity:  'secondary',
   suspended:         'destructive',
-  deactivated:       'outline',
+  disabled:          'outline',
+  failed:            'destructive',
 };
 
 const LABEL: Record<AccountStatus, string> = {
   active:           'Active',
   pending_identity: 'Pending',
   suspended:        'Suspended',
-  deactivated:      'Deactivated',
+  disabled:         'Disabled',
+  failed:           'Failed',
 };
 
 interface Props {

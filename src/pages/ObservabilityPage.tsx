@@ -12,6 +12,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LLMCatalog } from '@/features/governance/components/LLMCatalog';
 
 // ---------------------------------------------------------------------------
 // Tool registry — update ports here if your .env.dev changes them
@@ -458,6 +459,17 @@ export function ObservabilityPage() {
           </div>
         </div>
       </div>
+
+      {/* LLMs & reasoning models — Langfuse launcher + live model catalog */}
+      <section className="space-y-4">
+        <header className="flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            LLMs & Reasoning Models
+          </h2>
+          <span className="text-xs text-muted-foreground">Traces · Prompts · Model catalog</span>
+        </header>
+        <LLMCatalog />
+      </section>
 
       {/* Three Pillars */}
       <section className="space-y-4">

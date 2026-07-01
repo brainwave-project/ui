@@ -4,13 +4,12 @@ import { usersApi }       from '@/api/users.api';
 import type { Permission, RoleWithPermissions } from '@/types/permission';
 import type { User, AccountStatus, Role, AdminCreateUserPayload } from '@/types/user';
 import { Button }   from '@/components/ui/button';
-import { Badge }    from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card }     from '@/components/ui/card';
 import { Label }    from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import {
   Shield, Users, Lock, ShieldCheck, ChevronLeft, ChevronRight,
-  UserPlus, UserCog, UserX, UserCheck, Pencil, Trash2, RefreshCw,
+  UserPlus, UserX, UserCheck, Pencil, Trash2, RefreshCw,
   Save, CheckCheck, AlertTriangle, KeyRound, Layers, Settings2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';

@@ -12,8 +12,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/know-ops/chat':        'Know Ops · Chat',
   '/activity':             'Activity',
   '/admin':                'Administration',
+  '/governance':           'Platform Governance',
   '/observability':        'Observability',
-  '/llm-observability':    'LLM Observability',
   '/profile':              'Profile',
 };
 

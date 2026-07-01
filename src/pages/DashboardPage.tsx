@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   FileText, FolderArchive, Workflow, Users, AlertTriangle, ArrowRight,
-  Sparkles, PieChart, Activity, Telescope, FlaskConical, MessageSquare, Gauge, ExternalLink,
+  Sparkles, PieChart, Activity, SlidersHorizontal, FlaskConical, MessageSquare, Gauge, ExternalLink,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AICore } from '@/components/ai/AICore';
@@ -140,7 +140,7 @@ export function DashboardPage() {
           <QuickLink to="/know-ops/retrieval"  icon={FlaskConical}  title="Retrieval Lab"  desc="Tune Top-K, score, vector space" />
           <QuickLink to="/know-ops/chat"       icon={MessageSquare} title="AI Chat"        desc="Grounded, cited conversations" />
           <QuickLink to="/observability"       icon={Gauge}         title="Observability"  desc="Metrics, logs & traces" />
-          <QuickLink to="/llm-observability"   icon={Telescope}     title="LLM Traces"     desc="RAG spans & generations" />
+          <QuickLink to="/governance"          icon={SlidersHorizontal} title="Governance"  desc="Cross-Encoder, Top-K, temperatures" />
           <QuickLink href={env.VITE_LANGFUSE_URL} icon={ExternalLink} title="Langfuse"     desc="Self-hosted prompt console" external />
         </CardContent>
       </Card>

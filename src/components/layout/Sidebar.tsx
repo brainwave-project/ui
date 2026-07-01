@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, LogOut, Activity, ClipboardList, ShieldCheck,
-  MessageSquare, Telescope, Boxes, Workflow, FlaskConical, FolderArchive, ChevronDown,
+  MessageSquare, SlidersHorizontal, Boxes, Workflow, FlaskConical, FolderArchive, ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -24,11 +24,11 @@ const KNOW_OPS: NavItem[] = [
 ];
 
 const BOTTOM: NavItem[] = [
-  { to: '/activity',          icon: ClipboardList, label: 'Activity'       },
-  { to: '/admin',             icon: ShieldCheck,   label: 'Administration' },
-  { to: '/observability',     icon: Activity,      label: 'Observability'  },
-  { to: '/llm-observability', icon: Telescope,     label: 'LLM Traces'     },
-  { to: '/profile',           icon: Users,         label: 'Profile'        },
+  { to: '/activity',      icon: ClipboardList,     label: 'Activity'       },
+  { to: '/admin',         icon: ShieldCheck,       label: 'Administration' },
+  { to: '/governance',    icon: SlidersHorizontal, label: 'Governance'     },
+  { to: '/observability', icon: Activity,          label: 'Observability'  },
+  { to: '/profile',       icon: Users,             label: 'Profile'        },
 ];
 
 const linkClass = (isActive: boolean, open: boolean) =>

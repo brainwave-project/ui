@@ -222,7 +222,7 @@ function ChatHeader() {
           Local RAG
         </span>
         <Link
-          to="/llm-observability"
+          to="/observability"
           className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 transition-colors hover:border-neon/40 hover:text-neon"
         >
           <Activity className="h-3.5 w-3.5" />

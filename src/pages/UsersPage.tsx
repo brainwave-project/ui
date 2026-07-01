@@ -583,7 +583,7 @@ export function UsersPage() {
 
   useEffect(() => { fetchUsers(page); }, [fetchUsers, page]);
 
-  function handleSaved(updated: User) {
+  function handleSaved(_updated: User) {
     setModal(null);
     // Refresh current page — updated user may appear on any page
     fetchUsers(page);

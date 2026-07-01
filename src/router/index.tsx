@@ -12,7 +12,7 @@ import { RetrievalLabPage }    from '@/pages/knowops/RetrievalLabPage';
 import { KnowDocumentsPage }   from '@/pages/knowops/KnowDocumentsPage';
 import { ProfilePage }         from '@/pages/ProfilePage';
 import { ObservabilityPage }   from '@/pages/ObservabilityPage';
-import { LLMObservabilityPage } from '@/pages/LLMObservabilityPage';
+import { GovernancePage }      from '@/pages/GovernancePage';
 import { ActivityPage }        from '@/pages/ActivityPage';
 import { UsersPage }           from '@/pages/UsersPage';
 import { AdminPage }           from '@/pages/AdminPage';
@@ -50,10 +50,13 @@ export const router = createBrowserRouter([
 
           { path: 'users',             element: <UsersPage /> },
           { path: 'admin',             element: <AdminPage /> },
+          { path: 'governance',        element: <GovernancePage /> },
           { path: 'observability',     element: <ObservabilityPage /> },
-          { path: 'llm-observability', element: <LLMObservabilityPage /> },
           { path: 'activity',          element: <ActivityPage /> },
           { path: 'profile',           element: <ProfilePage /> },
+
+          /* LLM Traces was folded into Observability → LLMs */
+          { path: 'llm-observability', element: <Navigate to="/observability" replace /> },
         ],
       },
     ],
