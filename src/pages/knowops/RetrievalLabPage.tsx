@@ -1,17 +1,18 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FlaskConical, Search, Loader2, Sparkles, Zap, SearchX, RotateCcw, Orbit, Info,
+  FlaskConical, Search, Loader2, Sparkles, Zap, SearchX, Orbit, Info,
+  Layers, SlidersHorizontal, ArrowRight, Check, X,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { KnowOpsHeader } from '@/features/knowops/components/KnowOpsHeader';
-import { GovernanceControl } from '@/features/knowops/components/GovernanceControl';
 import { VectorSpace } from '@/features/knowops/components/VectorSpace';
 import { SearchResultCard } from '@/features/semantic/components/SearchResultCard';
 import { useSemanticSearch } from '@/features/semantic/hooks/useSemantic';
+import { useGovernance } from '@/features/governance/hooks/useGovernance';
 import { useKnowOpsStore, SERVER_DEFAULTS } from '@/store/knowops.store';
 
 const EXAMPLES = [
@@ -22,10 +23,14 @@ const EXAMPLES = [
 
 export function RetrievalLabPage() {
   const navigate = useNavigate();
-  const {
-    topK, minScore, hybrid,
-    setTopK, setMinScore, setHybrid, resetRetrieval,
-  } = useKnowOpsStore();
+  const { hybrid, setHybrid } = useKnowOpsStore();
+  const { data: gov } = useGovernance();
+
+  // Retrieval depth + threshold are governed centrally now (agent-hub). The Lab
+  // reflects the live governed values instead of keeping its own editable copy.
+  const topK         = gov?.settings.top_k                ?? SERVER_DEFAULTS.topK;
+  const minScore     = gov?.settings.min_score            ?? SERVER_DEFAULTS.minScore;
+  const crossEncoder = gov?.settings.cross_encoder_enabled ?? false;
 
   const [input, setInput] = useState('');
   const [query, setQuery] = useState('');
@@ -52,8 +57,8 @@ export function RetrievalLabPage() {
         title="Tune & observe semantic retrieval"
         desc="Govern how the retriever ranks your knowledge base, then watch the result set resolve in vector space — live, on real similarity scores."
         actions={
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={resetRetrieval}>
-            <RotateCcw className="h-3.5 w-3.5" /> Reset knobs
+          <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => navigate('/governance')}>
+            <SlidersHorizontal className="h-3.5 w-3.5" /> Manage governance
           </Button>
         }
       />
@@ -163,37 +168,69 @@ export function RetrievalLabPage() {
             </CardContent>
           </Card>
 
-          {/* Governance */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Retrieval Governance</CardTitle>
+          {/* Active configuration — read-only reflection of central governance */}
+          <Card className="holo-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <SlidersHorizontal className="h-4 w-4 text-neon" /> Active Configuration
+              </CardTitle>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                governed
+              </span>
             </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="inline-flex w-full rounded-lg border p-0.5">
-                <ModeToggle active={hybrid} onClick={() => setHybrid(true)} icon={Sparkles} label="Hybrid (RRF)" />
-                <ModeToggle active={!hybrid} onClick={() => setHybrid(false)} icon={Zap} label="Vector" />
+            <CardContent className="space-y-4">
+              {/* Cross-Encoder — the headline knob */}
+              <div
+                className={cn(
+                  'rounded-xl border p-3 transition-colors',
+                  crossEncoder ? 'border-neon/30 bg-neon/[0.05]' : 'border-white/8 bg-card/40',
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Layers className={cn('h-4 w-4', crossEncoder ? 'text-neon drop-glow' : 'text-muted-foreground')} />
+                  <span className="text-sm font-medium">Cross-Encoder</span>
+                  <StatusBadge on={crossEncoder} className="ml-auto" />
+                </div>
+                {crossEncoder && (
+                  <p className="mt-2 flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
+                    pool {gov?.settings.rerank_candidate_k}
+                    <ArrowRight className="h-3 w-3" />
+                    keep top {gov?.settings.rerank_top_n}
+                  </p>
+                )}
               </div>
-              <GovernanceControl
-                label="Top-K" hint="chunks retrieved per query"
-                value={topK} min={1} max={30} step={1}
-                baseline={SERVER_DEFAULTS.topK}
-                format={(v) => `${v}`}
-                onChange={setTopK}
-              />
-              <GovernanceControl
-                label="Min similarity" hint="floor for a chunk to qualify"
-                value={minScore} min={0} max={0.95} step={0.05}
-                baseline={SERVER_DEFAULTS.minScore}
-                accent="plasma"
-                format={(v) => `${Math.round(v * 100)}%`}
-                onChange={setMinScore}
-              />
-              <p className="flex items-start gap-1.5 border-t border-white/5 pt-3 text-[11px] text-muted-foreground">
+
+              {/* Governed retrieval values */}
+              <div className="grid grid-cols-2 gap-2">
+                <ConfigStat label="Top-K" value={`${topK}`} />
+                <ConfigStat label="Min similarity" value={`${Math.round(minScore * 100)}%`} />
+              </div>
+
+              {/* Lab-only probe: retrieval method (not governed) */}
+              <div>
+                <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Probe method · lab-only
+                </p>
+                <div className="inline-flex w-full rounded-lg border p-0.5">
+                  <ModeToggle active={hybrid} onClick={() => setHybrid(true)} icon={Sparkles} label="Hybrid (RRF)" />
+                  <ModeToggle active={!hybrid} onClick={() => setHybrid(false)} icon={Zap} label="Vector" />
+                </div>
+              </div>
+
+              <p className="flex items-start gap-1.5 border-t border-white/5 pt-3 text-[11px] leading-relaxed text-muted-foreground">
                 <Info className="mt-0.5 h-3 w-3 shrink-0 text-neon/60" />
-                {hybrid
-                  ? 'RRF fuses vector rank with Postgres full-text rank: 1/(60+vᵣ) + 1/(60+kᵣ).'
-                  : 'Pure cosine ranking in 768-dim space via nomic-embed-text (local Ollama).'}
+                Top-K &amp; threshold mirror the central governance profile. The Cross-Encoder re-ranks the
+                <strong className="mx-1 text-foreground">Agent (CRAG)</strong> retrieval path; this Lab probes the
+                raw vector index directly, so reranking is not applied here.
               </p>
+
+              <Button
+                variant="ghost" size="sm"
+                className="w-full gap-1.5 text-xs"
+                onClick={() => navigate('/governance')}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" /> Edit in Governance
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -225,5 +262,31 @@ function StateBox({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-20">
       {children}
     </div>
+  );
+}
+
+function ConfigStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-white/8 bg-card/40 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function StatusBadge({ on, className }: { on: boolean; className?: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium',
+        on
+          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+          : 'border-white/10 bg-white/5 text-muted-foreground',
+        className,
+      )}
+    >
+      {on ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+      {on ? 'Enabled' : 'Disabled'}
+    </span>
   );
 }
