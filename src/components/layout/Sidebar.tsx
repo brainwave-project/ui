@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, LogOut, Activity, ClipboardList, ShieldCheck,
   MessageSquare, SlidersHorizontal, Boxes, Workflow, FlaskConical, FolderArchive, ChevronDown,
+  Gauge, Database, Microscope, Search, Scale, Sigma, GraduationCap, Settings2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -23,20 +24,23 @@ const KNOW_OPS: NavItem[] = [
   { to: '/know-ops/chat',      icon: MessageSquare, label: 'Chat'          },
 ];
 
-const BOTTOM: NavItem[] = [
-  { to: '/activity',      icon: ClipboardList,     label: 'Activity'       },
-  { to: '/admin',         icon: ShieldCheck,       label: 'Administration' },
-  { to: '/governance',    icon: SlidersHorizontal, label: 'Governance'     },
-  { to: '/observability', icon: Activity,          label: 'Observability'  },
-  { to: '/profile',       icon: Users,             label: 'Profile'        },
+const EVALUATION: NavItem[] = [
+  { to: '/evaluation/dataset',     icon: Database,      label: 'Dataset Construction' },
+  { to: '/evaluation/data-lab',    icon: Microscope,    label: 'Data Lab'             },
+  { to: '/evaluation/retrieval',   icon: Search,        label: 'Retrieval'            },
+  { to: '/evaluation/experiments', icon: Scale,         label: 'Experiments'          },
+  { to: '/evaluation/stats',       icon: Sigma,         label: 'Stats Lab'            },
+  { to: '/evaluation/learn',       icon: GraduationCap, label: 'Learning Path'        },
 ];
 
-const linkClass = (isActive: boolean, open: boolean) =>
-  cn(
-    'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-    isActive ? 'bg-neon/10 text-neon shadow-glow-inner' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
-    !open && 'justify-center px-2',
-  );
+/** Account + platform operations — everything that is not a knowledge or evaluation workflow. */
+const PLATFORM: NavItem[] = [
+  { to: '/profile',       icon: Users,             label: 'Profile'        },
+  { to: '/observability', icon: Activity,          label: 'Observability'  },
+  { to: '/governance',    icon: SlidersHorizontal, label: 'Governance'     },
+  { to: '/admin',         icon: ShieldCheck,       label: 'Administration' },
+  { to: '/activity',      icon: ClipboardList,     label: 'Activity'       },
+];
 
 function ActiveRail({ active }: { active: boolean }) {
   return (
@@ -52,7 +56,14 @@ function ActiveRail({ active }: { active: boolean }) {
 function NavRow({ item, open }: { item: NavItem; open: boolean }) {
   const { icon: Icon, to, label } = item;
   return (
-    <NavLink to={to} className={({ isActive }) => linkClass(isActive, open)}>
+    <NavLink
+      to={to}
+      className={({ isActive }) => cn(
+        'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+        isActive ? 'bg-neon/10 text-neon shadow-glow-inner' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
+        !open && 'justify-center px-2',
+      )}
+    >
       {({ isActive }) => (
         <>
           <ActiveRail active={isActive} />
@@ -64,26 +75,77 @@ function NavRow({ item, open }: { item: NavItem; open: boolean }) {
   );
 }
 
+/**
+ * A collapsible nav group. Active when the current path belongs to any of its items;
+ * on the collapsed rail the header jumps to the first item.
+ */
+function NavGroup({
+  label, icon: Icon, items, open, defaultExpanded = true,
+}: {
+  label: string; icon: React.ElementType; items: NavItem[]; open: boolean; defaultExpanded?: boolean;
+}) {
+  const { pathname } = useLocation();
+  const navigate     = useNavigate();
+  const active       = items.some((i) => pathname === i.to || pathname.startsWith(`${i.to}/`));
+  const [expanded, setExpanded] = useState(defaultExpanded || active);
+
+  function toggle() {
+    if (!open) {
+      navigate(items[0].to);
+      return;
+    }
+    setExpanded((v) => !v);
+  }
+
+  return (
+    <>
+      <button
+        onClick={toggle}
+        className={cn(
+          'group relative mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+          active ? 'text-neon' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
+          !open && 'justify-center px-2',
+        )}
+      >
+        <ActiveRail active={active && !expanded} />
+        <Icon className={cn('h-4 w-4 shrink-0 transition-transform group-hover:scale-110', active && 'drop-glow')} />
+        {open && (
+          <>
+            <span className="flex-1 text-left">{label}</span>
+            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', expanded ? 'rotate-180' : '')} />
+          </>
+        )}
+      </button>
+
+      {open && expanded && (
+        <div className="ml-3 flex flex-col gap-0.5 border-l border-white/8 pl-2">
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                cn(
+                  'group flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200',
+                  isActive ? 'bg-neon/10 text-neon' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
+                )
+              }
+            >
+              <item.icon className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:scale-110" />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function Sidebar({ open }: { open: boolean }) {
   const { logout, user } = useAuthStore();
-  const { pathname }     = useLocation();
-  const navigate         = useNavigate();
-
-  const knowOpsActive = pathname.startsWith('/know-ops');
-  const [expanded, setExpanded] = useState(true);
 
   async function handleLogout() {
     await authApi.logout().catch(() => {});
     logout();
-  }
-
-  function toggleGroup() {
-    if (!open) {
-      // Collapsed rail: jump straight into Know Ops.
-      navigate('/know-ops/retrieval');
-      return;
-    }
-    setExpanded((v) => !v);
   }
 
   return (
@@ -110,48 +172,12 @@ export function Sidebar({ open }: { open: boolean }) {
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
         {TOP.map((item) => <NavRow key={item.to} item={item} open={open} />)}
 
-        {/* Know Ops group */}
-        <button
-          onClick={toggleGroup}
-          className={cn(
-            'group relative mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-            knowOpsActive ? 'text-neon' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
-            !open && 'justify-center px-2',
-          )}
-        >
-          <ActiveRail active={knowOpsActive && !expanded} />
-          <Boxes className={cn('h-4 w-4 shrink-0 transition-transform group-hover:scale-110', knowOpsActive && 'drop-glow')} />
-          {open && (
-            <>
-              <span className="flex-1 text-left">Know Ops</span>
-              <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', expanded ? 'rotate-180' : '')} />
-            </>
-          )}
-        </button>
-
-        {open && expanded && (
-          <div className="ml-3 flex flex-col gap-0.5 border-l border-white/8 pl-2">
-            {KNOW_OPS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  cn(
-                    'group flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200',
-                    isActive ? 'bg-neon/10 text-neon' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
-                  )
-                }
-              >
-                <item.icon className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:scale-110" />
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
-          </div>
-        )}
+        <NavGroup label="Know Ops"   icon={Boxes}     items={KNOW_OPS}   open={open} />
+        <NavGroup label="Evaluation" icon={Gauge}     items={EVALUATION} open={open} />
 
         <Separator className="my-1 bg-white/5" />
 
-        {BOTTOM.map((item) => <NavRow key={item.to} item={item} open={open} />)}
+        <NavGroup label="Platform"   icon={Settings2} items={PLATFORM}   open={open} defaultExpanded={false} />
       </nav>
 
       <Separator className="bg-white/5" />

@@ -10,6 +10,12 @@ const PAGE_TITLES: Record<string, string> = {
   '/know-ops/retrieval':   'Know Ops · Retrieval Lab',
   '/know-ops/documents':   'Know Ops · Documents',
   '/know-ops/chat':        'Know Ops · Chat',
+  '/evaluation/dataset':     'Evaluation · Dataset Construction',
+  '/evaluation/data-lab':    'Evaluation · Data Lab',
+  '/evaluation/retrieval':   'Evaluation · Retrieval',
+  '/evaluation/experiments': 'Evaluation · Experiments',
+  '/evaluation/stats':       'Evaluation · Stats Lab',
+  '/evaluation/learn':       'Evaluation · Learning Path',
   '/activity':             'Activity',
   '/admin':                'Administration',
   '/governance':           'Platform Governance',
@@ -20,7 +26,10 @@ const PAGE_TITLES: Record<string, string> = {
 export function AppLayout() {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const { pathname } = useLocation();
-  const title = PAGE_TITLES[pathname] ?? '';
+  const title =
+    PAGE_TITLES[pathname]
+    ?? Object.entries(PAGE_TITLES).find(([path]) => path !== '/' && pathname.startsWith(`${path}/`))?.[1]
+    ?? '';
 
   return (
     <div className="relative flex h-screen overflow-hidden">

@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { LoginPage }           from '@/pages/LoginPage';
@@ -16,11 +16,46 @@ import { GovernancePage }      from '@/pages/GovernancePage';
 import { ActivityPage }        from '@/pages/ActivityPage';
 import { UsersPage }           from '@/pages/UsersPage';
 import { AdminPage }           from '@/pages/AdminPage';
+import { EvaluationLayout }        from '@/pages/evaluation/EvaluationLayout';
+import { DatasetConstructionPage } from '@/pages/evaluation/DatasetConstructionPage';
+import { DataLabPage }             from '@/pages/evaluation/DataLabPage';
+import { RetrievalEvalPage }       from '@/pages/evaluation/RetrievalEvalPage';
+import { ExperimentsPage }         from '@/pages/evaluation/ExperimentsPage';
+import { StatsLabPage }            from '@/pages/evaluation/StatsLabPage';
+import { LearningPathPage }        from '@/pages/evaluation/LearningPathPage';
+
+/**
+ * Evaluation — backed by the standalone Eval Lab API on the lean eval stack.
+ *
+ * That stack deliberately has no Keycloak, Kong or auth-hub, so nobody can log in
+ * while it runs. In development the section is therefore reachable without a
+ * session; in a production build it sits behind ProtectedRoute like everything
+ * else (and its API does not exist there at all).
+ */
+const evaluationRoute: RouteObject = {
+  path: 'evaluation',
+  element: <EvaluationLayout />,
+  children: [
+    { index: true,          element: <Navigate to="/evaluation/dataset" replace /> },
+    { path: 'dataset',      element: <DatasetConstructionPage /> },
+    { path: 'dataset/:datasetId', element: <DatasetConstructionPage /> },
+    { path: 'data-lab',     element: <DataLabPage /> },
+    { path: 'retrieval',    element: <RetrievalEvalPage /> },
+    { path: 'experiments',  element: <ExperimentsPage /> },
+    { path: 'stats',        element: <StatsLabPage /> },
+    { path: 'learn',        element: <LearningPathPage /> },
+  ],
+};
+
+const EVAL_WITHOUT_LOGIN = import.meta.env.DEV;
 
 export const router = createBrowserRouter([
   /* Public */
   { path: '/login',        element: <LoginPage /> },
   { path: '/set-password', element: <SetPasswordPage /> },
+
+  /* Evaluation without a session — dev builds only (see note above) */
+  ...(EVAL_WITHOUT_LOGIN ? [{ element: <AppLayout />, children: [evaluationRoute] }] : []),
 
   /* Protected shell */
   {
@@ -39,6 +74,8 @@ export const router = createBrowserRouter([
           { path: 'know-ops/documents',  element: <KnowDocumentsPage /> },
           { path: 'know-ops/chat',       element: <ChatPage /> },
 
+          ...(EVAL_WITHOUT_LOGIN ? [] : [evaluationRoute]),
+
           /* Document detail + upload (shared by Know Ops Documents) */
           { path: 'documents/upload', element: <UploadPage /> },
           { path: 'documents/:id',    element: <DocumentDetailPage /> },
@@ -48,6 +85,7 @@ export const router = createBrowserRouter([
           { path: 'chat',      element: <Navigate to="/know-ops/chat" replace /> },
           { path: 'documents', element: <Navigate to="/know-ops/documents" replace /> },
 
+          /* Platform */
           { path: 'users',             element: <UsersPage /> },
           { path: 'admin',             element: <AdminPage /> },
           { path: 'governance',        element: <GovernancePage /> },
