@@ -109,7 +109,7 @@ export function RunDetail({ runId, title }: { runId: string; title?: string }) {
           {judged !== undefined && judged < 0.8 && (
             <p className="rounded-md border border-amber-500/20 bg-amber-500/[0.05] p-2 text-[11px] text-amber-200">
               Only {Math.round(judged * 100)}% of the top-{run.k} results were ever judged. Unjudged results count as non-relevant, so
-              precision-type metrics here are a <strong>lower bound</strong>. Pool and judge in Dataset Construction.
+              precision-type metrics here are a <strong>lower bound</strong>. Pool and judge in Golden Sets → Judge.
             </p>
           )}
 

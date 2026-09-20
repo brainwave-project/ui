@@ -24,7 +24,7 @@ export function RetrievalEvalPage() {
   if (!datasetId || !bundle) {
     return (
       <EmptyState icon={FlaskConical} title="Select or create a dataset first">
-        Use the dataset picker above, or create one under Dataset Construction.
+        Use the dataset picker above, or create one under Golden Sets.
       </EmptyState>
     );
   }
@@ -117,7 +117,7 @@ function RetrievalWorkbench({ bundle }: { bundle: DatasetBundle }) {
             {!indexReady && (
               <p className="flex items-center gap-1.5 text-xs text-amber-300">
                 <AlertTriangle className="h-3.5 w-3.5" />
-                {indexState ? indexState.reason : `No '${variant.corpus_index}' index`} — index the corpus in Dataset Construction.
+                {indexState ? indexState.reason : `No '${variant.corpus_index}' index`} — index the corpus in Golden Sets → Index.
               </p>
             )}
             {item?.split === 'holdout' && (

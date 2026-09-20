@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, LogOut, Activity, ClipboardList, ShieldCheck,
   MessageSquare, SlidersHorizontal, Boxes, Workflow, FlaskConical, FolderArchive, ChevronDown,
-  Gauge, Database, Microscope, Search, Scale, Sigma, GraduationCap, Settings2,
+  Gauge, Database, Search, Scale, Sigma, GraduationCap, Settings2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -25,12 +25,11 @@ const KNOW_OPS: NavItem[] = [
 ];
 
 const EVALUATION: NavItem[] = [
-  { to: '/evaluation/dataset',     icon: Database,      label: 'Dataset Construction' },
-  { to: '/evaluation/data-lab',    icon: Microscope,    label: 'Data Lab'             },
-  { to: '/evaluation/retrieval',   icon: Search,        label: 'Retrieval'            },
-  { to: '/evaluation/experiments', icon: Scale,         label: 'Experiments'          },
-  { to: '/evaluation/stats',       icon: Sigma,         label: 'Stats Lab'            },
-  { to: '/evaluation/learn',       icon: GraduationCap, label: 'Learning Path'        },
+  { to: '/evaluation/dataset',     icon: Database,      label: 'Golden Sets'   },
+  { to: '/evaluation/retrieval',   icon: Search,        label: 'Retrieval'     },
+  { to: '/evaluation/experiments', icon: Scale,         label: 'Experiments'   },
+  { to: '/evaluation/stats',       icon: Sigma,         label: 'Stats Lab'     },
+  { to: '/evaluation/learn',       icon: GraduationCap, label: 'Learning Path' },
 ];
 
 /** Account + platform operations — everything that is not a knowledge or evaluation workflow. */

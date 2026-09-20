@@ -3,7 +3,7 @@
  *
  * The power arithmetic mirrors agent_hub.eval.stats.min_sample_size /
  * detectable_effect exactly (normal approximation, paired design). It lives here
- * only so the Data Lab sliders respond instantly; every number in a REPORT comes
+ * only so the Gate sliders respond instantly; every number in a REPORT comes
  * from the server.
  */
 

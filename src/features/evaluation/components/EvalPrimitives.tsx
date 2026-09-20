@@ -82,7 +82,7 @@ export function PrincipalNote({
   );
 }
 
-/** Numbered, collapsible workspace block — Build / Inspect / Label / Versions. */
+/** Numbered, collapsible workspace block. */
 export function WorkSection({
   step, title, blurb, icon: Icon, badges, defaultOpen = false, children,
 }: {

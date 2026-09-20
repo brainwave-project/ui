@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, ListChecks, Lock, Plus, Save, Trash2, Upload, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { evalApi } from '@/api/eval.api';
 import { useDatasetMutation } from '@/features/evaluation/hooks/useEval';
 import {
   EmptyState, Field, Pager, Panel, Pill, PrincipalNote, Segmented, SelectBox,
-  TextArea, TextField, Toggle,
+  TextArea, TextField,
 } from '@/features/evaluation/components/EvalPrimitives';
-import type { DatasetBundle, Difficulty, Evidence, GoldenItem, Split } from '@/types/eval';
+import type { DatasetBundle, Difficulty, Evidence, GoldenItem } from '@/types/eval';
 
 const SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/;
 const PAGE_SIZE = 10;
@@ -18,6 +19,34 @@ const GRADES = [
 ];
 
 const normText = (s: string) => s.split(/\s+/).filter(Boolean).join(' ').toLowerCase();
+
+/**
+ * Narrow the table to the rows a readiness check is complaining about.
+ *
+ * The free-text filter searches id/query/trap/origin, which cannot express
+ * "unassigned split" or "difficulty = hard". These facets can, so a check that
+ * names a defect can hand over the exact rows instead of a vague search term.
+ */
+function matchesFacet(item: GoldenItem, facet: string | null): boolean {
+  if (!facet) return true;
+  const [kind, value = ''] = facet.split(':');
+  switch (kind) {
+    case 'ids':        return value.split(',').includes(item.id);
+    case 'split':      return value === 'none' ? item.split == null : item.split === value;
+    case 'origin':     return item.origin === value;
+    case 'difficulty': return item.difficulty === value;
+    case 'trap':       return item.trap === value;
+    case 'lang':       return item.lang === value;
+    case 'evidence':   return value === 'none' ? item.evidence.length === 0 : true;
+    case 'answerable': return value === 'no' ? Object.keys(item.relevant).length === 0 : true;
+    default:           return true;
+  }
+}
+
+const FACET_LABEL: Record<string, string> = {
+  ids: 'these items', split: 'split', origin: 'origin', difficulty: 'difficulty',
+  trap: 'trap', lang: 'language', evidence: 'evidence', answerable: 'answerable',
+};
 
 const emptyItem = (id: string, lang: string): GoldenItem => ({
   id, query: '', lang, relevant: {}, evidence: [], ground_truth: '', difficulty: 'medium',
@@ -36,12 +65,41 @@ export function ItemsSection({ bundle }: { bundle: DatasetBundle }) {
   const [filter, setFilter] = useState('');
   const [page, setPage] = useState(1);
 
+  // A readiness check links here with `f=` (which rows are at fault) and
+  // optionally `item=` (open that one). Both are cleared once consumed, so the
+  // narrowed view never outlives the question that caused it.
+  const [params, setParams] = useSearchParams();
+  const facet = params.get('f');
+  const wantedItem = params.get('item');
+
+  const clearFacet = () => {
+    const next = new URLSearchParams(params);
+    next.delete('f');
+    setParams(next, { replace: true });
+  };
+
+  useEffect(() => {
+    if (!wantedItem) return;
+    const match = bundle.items.find((i) => i.id === wantedItem);
+    if (match) {
+      setEditing(match);
+      setIsNew(false);
+    }
+    const next = new URLSearchParams(params);
+    next.delete('item');
+    setParams(next, { replace: true });
+    // Runs once per incoming link; `params` is intentionally not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantedItem, bundle.items]);
+
   const save = useDatasetMutation((item: GoldenItem) => evalApi.putItem(id, version, item), 'Item saved');
   const remove = useDatasetMutation((itemId: string) => evalApi.deleteItem(id, version, itemId), 'Item removed');
   const importItems = useDatasetMutation(() => evalApi.importItems(id, version, jsonl, mode), 'Items imported');
 
   const bodies = useMemo(() => Object.fromEntries(bundle.corpus.map((d) => [d.doc_id, normText(d.body)])), [bundle.corpus]);
-  const rows = bundle.items.filter((i) => !filter || `${i.id} ${i.query} ${i.trap} ${i.origin}`.toLowerCase().includes(filter.toLowerCase()));
+  const rows = bundle.items.filter((i) =>
+    matchesFacet(i, facet)
+    && (!filter || `${i.id} ${i.query} ${i.trap} ${i.origin}`.toLowerCase().includes(filter.toLowerCase())));
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const slice = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
@@ -116,9 +174,32 @@ export function ItemsSection({ bundle }: { bundle: DatasetBundle }) {
                 or generate candidates in Synthetic and review them.
               </EmptyState>
             ) : rows.length === 0 ? (
-              <EmptyState icon={ListChecks} title="No matching items">Clear the filter to see every golden item.</EmptyState>
+              <EmptyState icon={ListChecks} title="No matching items">
+                {facet ? (
+                  <>
+                    No item matches the check that sent you here.{' '}
+                    <button type="button" className="text-neon underline-offset-2 hover:underline" onClick={clearFacet}>
+                      Show all items
+                    </button>
+                  </>
+                ) : 'Clear the filter to see every golden item.'}
+              </EmptyState>
             ) : (
               <>
+                {facet && (
+                  <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-neon/30 bg-neon/[0.05] px-2.5 py-1.5 text-xs">
+                    <span className="text-muted-foreground">
+                      Showing {rows.length} item{rows.length === 1 ? '' : 's'} from a readiness check —{' '}
+                      <span className="text-foreground">
+                        {FACET_LABEL[facet.split(':')[0]] ?? facet.split(':')[0]}
+                        {facet.split(':')[0] !== 'ids' && ` = ${facet.split(':').slice(1).join(':')}`}
+                      </span>
+                    </span>
+                    <button type="button" className="ml-auto text-neon underline-offset-2 hover:underline" onClick={clearFacet}>
+                      Show all items
+                    </button>
+                  </div>
+                )}
                 <div className="overflow-auto">
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 bg-background/90 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -326,16 +407,6 @@ function ItemEditor({
           <Field label="Trap" hint="e.g. alef-hamza, taa-marbuta, none (control)">
             <TextField value={item.trap} onChange={(e) => set('trap', e.target.value)} />
           </Field>
-        </div>
-        <div className="grid grid-cols-2 items-end gap-2">
-          <Field label="Split">
-            <SelectBox<string> value={item.split ?? ''}
-              options={[{ value: '', label: 'unassigned' }, { value: 'dev', label: 'dev' }, { value: 'holdout', label: 'holdout' }]}
-              onChange={(v) => set('split', (v || null) as Split | null)} />
-          </Field>
-          <div className="pb-2">
-            <Toggle checked={item.pinned} onChange={(v) => set('pinned', v)} label="Pin split (survives re-splitting)" />
-          </div>
         </div>
         <Field label="Tags (comma separated)">
           <TextField value={item.tags.join(', ')} onChange={(e) => set('tags', e.target.value.split(',').map((t) => t.trim()).filter(Boolean))} />

@@ -9,11 +9,6 @@ import { useEvalStore } from '@/store/eval.store';
 
 const PAGE_INTRO: { prefix: string; title: string; blurb: string }[] = [
   {
-    prefix: '/evaluation/data-lab',
-    title: 'Data Lab',
-    blurb: 'Readiness, split, power, and coverage — whether this golden set can actually support a claim.',
-  },
-  {
     prefix: '/evaluation/retrieval',
     title: 'Retrieval',
     blurb: 'Probe a variant on a query, grade the hits, and save judgements back to the golden set.',
