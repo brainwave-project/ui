@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bug, LineChart as LineIcon, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { evalApi } from '@/api/eval.api';
 import { useEvalMutation } from '@/features/evaluation/hooks/useEval';
-import { EmptyState, Field, Pill, PrincipalNote, SelectBox, TextField } from './EvalPrimitives';
+import { EmptyState, Field, Pager, Pill, PrincipalNote, SelectBox, TextField } from './EvalPrimitives';
 import { LineChart, RateBars, SERIES } from './statCharts';
 import { METRIC_INFO, METRIC_KEYS, fmt3 } from '@/features/evaluation/lib/evalStats';
 import type { FailureRow } from '@/types/eval';
+
+const PAGE_SIZE = 5;
 
 const SWEEP_LABELS: Record<string, string> = {
   hit_rate: 'Hit rate', recall: 'Recall', precision: 'Precision', mrr: 'MRR', ndcg: 'NDCG', graded_ndcg: 'NDCG graded', map: 'MAP',
@@ -16,7 +18,7 @@ const SWEEP_LABELS: Record<string, string> = {
 
 export function SweepsPanel({ runId }: { runId: string }) {
   const { data, isLoading } = useQuery({ queryKey: ['eval', 'sweeps', runId], queryFn: () => evalApi.sweeps(runId, 20) });
-  if (isLoading || !data) return <div className="h-40" />;
+  if (isLoading || !data) return <div className="h-40 animate-pulse rounded-xl border border-white/8 bg-black/20" />;
   if (!data.k.n) return <EmptyState icon={LineIcon} title="No judged queries in this run" />;
 
   const kSeries = Object.entries(data.k.series).map(([name, values], i) => ({
@@ -35,12 +37,12 @@ export function SweepsPanel({ runId }: { runId: string }) {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 2xl:grid-cols-2">
-        <div>
-          <p className="mb-1 text-xs font-medium">Every metric at k = 1…20 <span className="text-muted-foreground">(computed exactly at each k, from the stored rankings)</span></p>
+        <div className="rounded-xl border border-white/8 bg-black/20 p-3">
+          <p className="mb-2 text-xs font-medium">Every metric at k = 1…20 <span className="font-normal text-muted-foreground">(computed exactly at each k, from the stored rankings)</span></p>
           <LineChart series={kSeries} markers={[{ x: data.k.run_k, label: `run k=${data.k.run_k}` }]} formatX={(v) => `${v}`} />
         </div>
-        <div>
-          <p className="mb-1 text-xs font-medium">Dropping results below a similarity floor <span className="text-muted-foreground">({data.threshold.score_kind})</span></p>
+        <div className="rounded-xl border border-white/8 bg-black/20 p-3">
+          <p className="mb-2 text-xs font-medium">Dropping results below a similarity floor <span className="font-normal text-muted-foreground">({data.threshold.score_kind})</span></p>
           <LineChart series={tSeries} formatX={(v) => v.toFixed(2)}
             markers={firstEmpty ? [{ x: firstEmpty.threshold, label: 'first empty result' }] : []} />
         </div>
@@ -58,14 +60,22 @@ export function SweepsPanel({ runId }: { runId: string }) {
 export function FailuresPanel({ runId }: { runId: string }) {
   const [metric, setMetric] = useState('recall@k');
   const [threshold, setThreshold] = useState(1);
-  const { data } = useQuery({
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useQuery({
     queryKey: ['eval', 'failures', runId, metric, threshold],
     queryFn: () => evalApi.failures(runId, metric, threshold),
   });
 
+  useEffect(() => { setPage(1); }, [metric, threshold, runId, data?.failed]);
+
+  const failures = data?.failures ?? [];
+  const totalPages = Math.max(1, Math.ceil(failures.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const slice = failures.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-white/8 bg-black/20 px-3 py-2.5">
         <Field label="Failure = metric below" className="w-44">
           <SelectBox value={metric} onChange={setMetric} options={METRIC_KEYS.map((m) => ({ value: m, label: METRIC_INFO[m].label }))} />
         </Field>
@@ -81,12 +91,12 @@ export function FailuresPanel({ runId }: { runId: string }) {
 
       {data && data.failed > 0 && (
         <div className="grid gap-4 xl:grid-cols-2">
-          <div>
+          <div className="rounded-xl border border-white/8 bg-black/20 p-3">
             <p className="mb-1.5 text-xs font-medium">Suggested causes (auto)</p>
             <RateBars max={data.failed}
               rows={Object.entries(data.suggested_counts).map(([k, n], i) => ({ label: data.taxonomy[k]?.label ?? k, value: n, color: SERIES[i % SERIES.length], sub: data.taxonomy[k]?.hint }))} />
           </div>
-          <div>
+          <div className="rounded-xl border border-white/8 bg-black/20 p-3">
             <p className="mb-1.5 text-xs font-medium">Your tags</p>
             {Object.keys(data.tag_counts).length ? (
               <RateBars max={data.failed}
@@ -97,8 +107,10 @@ export function FailuresPanel({ runId }: { runId: string }) {
         </div>
       )}
 
+      {isLoading && <div className="h-40 animate-pulse rounded-xl border border-white/8 bg-black/20" />}
       {data && data.failed === 0 && <EmptyState icon={Bug} title="No failures at this threshold" />}
-      {data && data.failures.map((f) => <FailureCard key={f.item_id} runId={runId} row={f} taxonomy={data.taxonomy} />)}
+      {slice.map((f) => <FailureCard key={f.item_id} runId={runId} row={f} taxonomy={data!.taxonomy} />)}
+      {data && data.failed > 0 && <Pager page={safePage} pageSize={PAGE_SIZE} total={failures.length} onPage={setPage} />}
 
       <PrincipalNote title="Error analysis">
         A mean says <strong>that</strong> a system fails; only the individual failures say <strong>why</strong>, and "why" is the only
@@ -120,16 +132,18 @@ function FailureCard({ runId, row, taxonomy }: { runId: string; row: FailureRow;
   const dirty = JSON.stringify(tags) !== JSON.stringify(row.tags) || note !== row.note;
 
   return (
-    <div className="rounded-xl border border-white/8 bg-card/30 p-3 text-xs">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="overflow-hidden rounded-xl border border-white/8 bg-black/20 text-xs">
+      <div className="flex flex-wrap items-center gap-2 border-b border-white/5 px-3 py-2">
         <span className="font-mono text-[10px] text-muted-foreground">{row.item_id}</span>
-        <span dir="auto" className="font-medium">{row.query}</span>
-        <span className="ml-auto font-mono">{fmt3(row.value)}</span>
+        <span dir="auto" className="min-w-0 flex-1 truncate font-medium" title={row.query}>{row.query}</span>
+        <span className={cn('font-mono tabular-nums', row.value === 0 ? 'text-red-400' : 'text-muted-foreground')}>{fmt3(row.value)}</span>
       </div>
-      <div className="mt-2 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div>
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Top 5 · relevant: {row.relevant.map((d) => `${d}${row.relevant_ranks[d] ? ` @${row.relevant_ranks[d]}` : ' (not retrieved)'}`).join(', ')}</p>
-          <ol className="mt-1 space-y-0.5">
+      <div className="grid gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="rounded-lg border border-white/8 bg-black/25 p-2.5">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            Top 5 · relevant: {row.relevant.map((d) => `${d}${row.relevant_ranks[d] ? ` @${row.relevant_ranks[d]}` : ' (not retrieved)'}`).join(', ')}
+          </p>
+          <ol className="mt-1.5 space-y-1">
             {row.top.map((h) => (
               <li key={h.rank} className="flex items-center gap-2 font-mono text-[10px]">
                 <span className="w-4 text-muted-foreground">{h.rank}</span>
@@ -141,16 +155,18 @@ function FailureCard({ runId, row, taxonomy }: { runId: string; row: FailureRow;
           </ol>
         </div>
         <div className="space-y-2">
-          <div className="flex flex-wrap gap-1">
-            {row.suggested.map((s) => <Pill key={s} tone="info" title={taxonomy[s]?.hint}>suggested: {taxonomy[s]?.label ?? s}</Pill>)}
-          </div>
+          {row.suggested.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {row.suggested.map((s) => <Pill key={s} tone="info" title={taxonomy[s]?.hint}>suggested: {taxonomy[s]?.label ?? s}</Pill>)}
+            </div>
+          )}
           <div className="flex flex-wrap gap-1">
             {Object.entries(taxonomy).map(([key, t]) => {
               const on = tags.includes(key);
               return (
                 <button key={key} type="button" title={t.hint}
                   onClick={() => setTags((cur) => on ? cur.filter((x) => x !== key) : [...cur, key])}
-                  className={cn('rounded-full border px-2 py-0.5 text-[10px]', on ? 'border-neon/50 bg-neon/15 text-neon' : 'border-white/10 text-muted-foreground hover:text-foreground')}>
+                  className={cn('rounded-full border px-2 py-0.5 text-[10px] transition-colors', on ? 'border-neon/50 bg-neon/15 text-neon' : 'border-white/10 text-muted-foreground hover:text-foreground')}>
                   {t.label}
                 </button>
               );

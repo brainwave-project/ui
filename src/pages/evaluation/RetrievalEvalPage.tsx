@@ -1,23 +1,43 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type ElementType, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
-  FlaskConical, Loader2, Play, Save, Search, Sigma, SlidersHorizontal, Info, Target, Undo2, AlertTriangle,
+  AlertTriangle, ChevronDown, FlaskConical, GitCompare, History, Info, Loader2, Play, Save,
+  Search, Sigma, SlidersHorizontal, Target, Undo2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { evalApi } from '@/api/eval.api';
 import {
-  useDatasetMutation, useEvalMutation, useJob, useSelectedDataset,
+  useDatasetMutation, useEvalMutation, useJob, useRuns, useSelectedDataset,
 } from '@/features/evaluation/hooks/useEval';
 import {
-  EmptyState, Field, JobBar, Panel, Pill, PrincipalNote, SelectBox, TextField,
+  EmptyState, Field, JobBar, Pager, Panel, Pill, PrincipalNote, SelectBox, TextField,
 } from '@/features/evaluation/components/EvalPrimitives';
 import { DEFAULT_VARIANT, VariantEditor } from '@/features/evaluation/components/VariantEditor';
-import { RunDetail } from '@/features/evaluation/components/RunViews';
-import { METRIC_INFO, METRIC_KEYS, fmt3 } from '@/features/evaluation/lib/evalStats';
+import { CompareView, NoRuns, RunDetail, variantSummary } from '@/features/evaluation/components/RunViews';
+import { METRIC_INFO, METRIC_KEYS, fmt3, fmtTime } from '@/features/evaluation/lib/evalStats';
 import { useEvalStore } from '@/store/eval.store';
-import type { DatasetBundle, Job, RankedHit, SearchRequest, SearchResponse, VariantSpec } from '@/types/eval';
+import type {
+  CompareReport, DatasetBundle, Job, RankedHit, SearchRequest, SearchResponse, VariantSpec,
+} from '@/types/eval';
 
 const GRADE_LABEL = ['not relevant', 'partially', 'substantially', 'fully answers'];
+const PAGE_SIZE = 5;
+
+type RetrievalTab = 'probe' | 'score' | 'compare';
+
+function useRetrievalTab(): [RetrievalTab, (t: RetrievalTab) => void] {
+  const [params, setParams] = useSearchParams();
+  const raw = params.get('tab');
+  const tab: RetrievalTab = raw === 'score' || raw === 'compare' ? raw : 'probe';
+  const setTab = (next: RetrievalTab) => {
+    const merged = new URLSearchParams(params);
+    if (next === 'probe') merged.delete('tab');
+    else merged.set('tab', next);
+    setParams(merged);
+  };
+  return [tab, setTab];
+}
 
 export function RetrievalEvalPage() {
   const { data: bundle, datasetId } = useSelectedDataset();
@@ -33,6 +53,7 @@ export function RetrievalEvalPage() {
 
 function RetrievalWorkbench({ bundle }: { bundle: DatasetBundle }) {
   const draft = bundle.manifest.status === 'draft';
+  const [tab, setTab] = useRetrievalTab();
   const [variant, setVariant] = useState<VariantSpec>({ ...DEFAULT_VARIANT, name: 'probe' });
   const [k, setK] = useState(5);
   const [itemId, setItemId] = useState('');
@@ -44,6 +65,8 @@ function RetrievalWorkbench({ bundle }: { bundle: DatasetBundle }) {
   const baseRelevant = judgments ?? item?.relevant ?? {};
   const indexState = bundle.indexes[variant.corpus_index];
   const indexReady = !!indexState?.current;
+  const runs = useRuns(bundle.meta.id);
+  const doneRuns = (runs.data ?? []).filter((r) => r.status === 'done').length;
 
   const search = useEvalMutation((body: SearchRequest) => evalApi.search(body), { onSuccess: setResponse });
   const saveItem = useDatasetMutation(
@@ -89,101 +112,189 @@ function RetrievalWorkbench({ bundle }: { bundle: DatasetBundle }) {
 
   const diverges = judgments !== null && JSON.stringify(judgments) !== JSON.stringify(item?.relevant ?? {});
 
+  const tabs: { id: RetrievalTab; step: string; title: string; blurb: string; icon: ElementType; count?: number }[] = [
+    { id: 'probe',   step: '1', title: 'Probe',   blurb: 'One query, ranking, arithmetic', icon: Search },
+    { id: 'score',   step: '2', title: 'Score',   blurb: 'The same config over a split',   icon: Play },
+    { id: 'compare', step: '3', title: 'Compare', blurb: 'A/B over past runs',              icon: GitCompare, count: doneRuns },
+  ];
+
   return (
-    <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
-      <div className="min-w-0 space-y-4">
-        {/* Query bar */}
-        <Panel title="Probe" icon={Search} subtitle="Run one query, see the ranking, and see exactly how each metric is computed from it.">
-          <form
-            className="space-y-3"
-            onSubmit={(e: FormEvent) => { e.preventDefault(); run(); }}
+    <div className="space-y-5">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-card/30">
+        <nav className="grid grid-cols-1 gap-px bg-white/5 sm:grid-cols-3" aria-label="Retrieval stages">
+          {tabs.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  'relative flex items-center gap-3 px-4 py-3 text-left transition-colors',
+                  active ? 'bg-card/80' : 'bg-card/20 hover:bg-white/[0.04]',
+                )}
+              >
+                <span className={cn(
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-bold',
+                  active ? 'bg-neon text-primary-foreground shadow-glow-sm' : 'bg-white/5 text-muted-foreground',
+                )}>
+                  {t.step}
+                </span>
+                <span className="min-w-0">
+                  <span className={cn('flex items-center gap-1.5 text-sm font-medium', active ? 'text-neon' : 'text-foreground')}>
+                    <t.icon className="h-3.5 w-3.5 shrink-0" /> {t.title}
+                    {t.count != null && t.count > 0 && (
+                      <span className="rounded-full bg-white/5 px-1.5 font-mono text-[10px] text-muted-foreground">{t.count}</span>
+                    )}
+                  </span>
+                  <span className="mt-0.5 hidden truncate text-[11px] text-muted-foreground md:block">{t.blurb}</span>
+                </span>
+                {active && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-neon shadow-glow-sm" />}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {tab === 'probe' && (
+        <div className="animate-fade-in space-y-4">
+          <Panel
+            title="Query"
+            icon={Search}
+            subtitle="Pick a golden item or type a free query. Metrics recompute as you judge."
           >
-            <div className="grid gap-3 md:grid-cols-[260px_minmax(0,1fr)]">
-              <Field label="Golden item (optional)">
-                <SelectBox value={itemId} onChange={pickItem}
-                  options={[{ value: '', label: 'free query — judge results yourself' },
-                    ...bundle.items.map((i) => ({ value: i.id, label: `${i.split === 'holdout' ? '🔒 ' : ''}${i.id} · ${i.query.slice(0, 48)}` }))]} />
-              </Field>
-              <Field label="Query">
-                <div className="flex gap-2">
+            <form className="space-y-3" onSubmit={(e: FormEvent) => { e.preventDefault(); run(); }}>
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)_auto]">
+                <Field label="Golden item">
+                  <SelectBox value={itemId} onChange={pickItem}
+                    options={[{ value: '', label: 'free query — judge results yourself' },
+                      ...bundle.items.map((i) => ({ value: i.id, label: `${i.split === 'holdout' ? '🔒 ' : ''}${i.id} · ${i.query.slice(0, 48)}` }))]} />
+                </Field>
+                <Field label="Query">
                   <TextField dir="auto" value={query} placeholder="Ask the index…" className="h-10 text-sm"
                     onChange={(e) => { setQuery(e.target.value); if (item && e.target.value !== item.query) setItemId(''); }} />
-                  <Button type="submit" className="h-10 gap-1.5" disabled={!query.trim() || !indexReady || search.isPending}>
+                </Field>
+                <div className="flex items-end">
+                  <Button type="submit" className="h-10 w-full gap-1.5 lg:w-auto" disabled={!query.trim() || !indexReady || search.isPending}>
                     {search.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Run
                   </Button>
                 </div>
-              </Field>
-            </div>
-            {!indexReady && (
-              <p className="flex items-center gap-1.5 text-xs text-amber-300">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                {indexState ? indexState.reason : `No '${variant.corpus_index}' index`} — index the corpus in Golden Sets → Index.
-              </p>
-            )}
-            {item?.split === 'holdout' && (
-              <p className="flex items-center gap-1.5 text-xs text-amber-300">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                Holdout item. Inspecting it and then changing the system leaks it into your tuning — prefer dev items while iterating.
-              </p>
-            )}
-          </form>
-        </Panel>
-
-        {response ? (
-          <>
-            <ResultsPanel response={response} relevant={baseRelevant} onGrade={cycleGrade} level={variant.level} k={k} />
-            {(diverges || (!item && judgments && Object.keys(judgments).length > 0)) && (
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-neon/30 bg-neon/[0.05] p-3 text-xs">
-                <Target className="h-4 w-4 text-neon" />
-                <span className="flex-1">
-                  {item ? <>Your judgements differ from golden item <strong>{item.id}</strong>.</> : <>This query has ad-hoc judgements.</>}
-                  {' '}Metrics above use your judgements.
-                </span>
-                <Button size="sm" variant="ghost" className="gap-1.5 text-xs" onClick={() => { setJudgments(null); run(null); }}>
-                  <Undo2 className="h-3.5 w-3.5" /> Reset
-                </Button>
-                <Button size="sm" className="gap-1.5 text-xs" disabled={!draft || saveItem.isPending}
-                  title={draft ? '' : 'Frozen dataset — fork to add judgements'}
-                  onClick={() => judgments && saveItem.mutate(judgments, { onSuccess: () => setJudgments(null) })}>
-                  <Save className="h-3.5 w-3.5" /> {item ? 'Update golden item' : 'Add as golden item'}
-                </Button>
               </div>
-            )}
-            <ExplainPanel response={response} k={k} />
-          </>
-        ) : (
-          <Panel title="Results" icon={FlaskConical}>
-            <EmptyState icon={FlaskConical} title="Run a query">
-              Pick a golden item to score against its judgements, or type a free query and click the grade chips to
-              judge results yourself — metrics recompute as you judge.
-            </EmptyState>
+              {!indexReady && (
+                <p className="flex items-center gap-1.5 text-xs text-amber-300">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {indexState ? indexState.reason : `No '${variant.corpus_index}' index`} — index the corpus in Golden Sets → Index.
+                </p>
+              )}
+              {item?.split === 'holdout' && (
+                <p className="flex items-center gap-1.5 text-xs text-amber-300">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Holdout item. Inspecting it and then changing the system leaks it into your tuning — prefer dev items while iterating.
+                </p>
+              )}
+              <VariantFold
+                variant={variant}
+                onChange={setVariant}
+                k={k}
+                setK={setK}
+                indexed={{ off: !!bundle.indexes.off?.current, conservative: !!bundle.indexes.conservative?.current, aggressive: !!bundle.indexes.aggressive?.current }}
+                onRerun={() => run()}
+                canRerun={!!query.trim() && indexReady}
+              />
+            </form>
           </Panel>
-        )}
 
-        <BatchRun bundle={bundle} variant={variant} k={k} indexReady={indexReady} />
-      </div>
+          {response ? (
+            <>
+              <ResultsPanel response={response} relevant={baseRelevant} onGrade={cycleGrade} level={variant.level} k={k} />
+              {(diverges || (!item && judgments && Object.keys(judgments).length > 0)) && (
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-neon/30 bg-neon/[0.05] p-3 text-xs">
+                  <Target className="h-4 w-4 text-neon" />
+                  <span className="flex-1">
+                    {item ? <>Your judgements differ from golden item <strong>{item.id}</strong>.</> : <>This query has ad-hoc judgements.</>}
+                    {' '}Metrics above use your judgements.
+                  </span>
+                  <Button size="sm" variant="ghost" className="gap-1.5 text-xs" onClick={() => { setJudgments(null); run(null); }}>
+                    <Undo2 className="h-3.5 w-3.5" /> Reset
+                  </Button>
+                  <Button size="sm" className="gap-1.5 text-xs" disabled={!draft || saveItem.isPending}
+                    title={draft ? '' : 'Frozen dataset — fork to add judgements'}
+                    onClick={() => judgments && saveItem.mutate(judgments, { onSuccess: () => setJudgments(null) })}>
+                    <Save className="h-3.5 w-3.5" /> {item ? 'Update golden item' : 'Add as golden item'}
+                  </Button>
+                </div>
+              )}
+              <ExplainPanel response={response} k={k} />
+            </>
+          ) : (
+            <Panel title="Ranking" icon={FlaskConical}>
+              <EmptyState icon={FlaskConical} title="Run a query">
+                Pick a golden item to score against its judgements, or type a free query and click the grade chips to
+                judge results yourself.
+              </EmptyState>
+            </Panel>
+          )}
+        </div>
+      )}
 
-      {/* Configuration rail */}
-      <div className="space-y-4">
-        <Panel title="Retrieval configuration" icon={SlidersHorizontal}>
-          <div className="space-y-3">
-            <VariantEditor value={variant} onChange={setVariant}
-              indexed={{ off: !!bundle.indexes.off?.current, conservative: !!bundle.indexes.conservative?.current, aggressive: !!bundle.indexes.aggressive?.current }} />
-            <Field label="k (cutoff)" hint="Set metrics at k; rank-aware metrics (MRR, NDCG, MAP) at max(k, 10). Keep k at what the generator consumes.">
-              <TextField type="number" min={1} max={50} value={k} onChange={(e) => setK(Math.max(1, Math.min(50, Number(e.target.value) || 5)))} />
-            </Field>
-            <Button size="sm" variant="outline" className="w-full text-xs" disabled={!query.trim() || !indexReady} onClick={() => run()}>
-              Re-run with this configuration
-            </Button>
-          </div>
-        </Panel>
-        <PrincipalNote title="Variants & the control group">
-          A <strong>variant</strong> is one complete configuration. Change one field at a time and the difference is that
-          field’s effect. In the Arabic normalisation study, the <strong>English set is the control group</strong>: it has
-          nothing to normalise, so a movement there means the change did something general — not that it fixed Arabic
-          orthography. Without a control, attribution is a guess.
-        </PrincipalNote>
-      </div>
+      {tab === 'score' && (
+        <div className="animate-fade-in">
+          <BatchRun bundle={bundle} variant={variant} k={k} indexReady={indexReady} />
+        </div>
+      )}
+
+      {tab === 'compare' && (
+        <div className="animate-fade-in">
+          <CompareRuns datasetId={bundle.meta.id} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VariantFold({
+  variant, onChange, k, setK, indexed, onRerun, canRerun,
+}: {
+  variant: VariantSpec;
+  onChange: (v: VariantSpec) => void;
+  k: number;
+  setK: (k: number) => void;
+  indexed?: Partial<Record<'off' | 'conservative' | 'aggressive', boolean>>;
+  onRerun: () => void;
+  canRerun: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="overflow-hidden rounded-xl border border-white/8">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left"
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{variant.name}</span>
+          {' · '}{variantSummary(variant)}{' · '}k={k}
+        </span>
+        <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="space-y-3 border-t border-white/8 p-3">
+          <VariantEditor value={variant} onChange={onChange} indexed={indexed} />
+          <Field label="k (cutoff)" hint="Set metrics at k; rank-aware metrics (MRR, NDCG, MAP) at max(k, 10). Keep k at what the generator consumes.">
+            <TextField type="number" min={1} max={50} value={k} onChange={(e) => setK(Math.max(1, Math.min(50, Number(e.target.value) || 5)))} />
+          </Field>
+          <Button type="button" size="sm" variant="outline" className="w-full text-xs" disabled={!canRerun} onClick={onRerun}>
+            Re-run with this configuration
+          </Button>
+          <PrincipalNote title="Variants & the control group">
+            A <strong>variant</strong> is one complete configuration. Change one field at a time and the difference is that
+            field’s effect. In the Arabic normalisation study, the <strong>English set is the control group</strong>: it has
+            nothing to normalise, so a movement there means the change did something general — not that it fixed Arabic
+            orthography. Without a control, attribution is a guess.
+          </PrincipalNote>
+        </div>
+      )}
     </div>
   );
 }
@@ -204,13 +315,23 @@ function ResultsPanel({
 }) {
   const { result, notes } = response;
   const hasJudgements = Object.keys(result.relevant_units).length > 0;
+  const [page, setPage] = useState(1);
+
+  useEffect(() => { setPage(1); }, [result.query, result.ranked.length, k]);
+
+  const totalPages = Math.max(1, Math.ceil(result.ranked.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const slice = result.ranked.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-      <Panel title={`Ranking · ${result.ranked.length} ${level === 'chunk' ? 'chunks' : 'documents'}`} icon={FlaskConical}
-        subtitle={<>{result.latency_ms.toFixed(0)} ms{result.query_sent !== result.query && <> · sent as <span dir="auto" className="font-mono text-foreground">“{result.query_sent}”</span></>}</>}>
-        <div className="max-h-[640px] space-y-2 overflow-y-auto pr-1">
-          {result.ranked.map((hit) => {
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <Panel
+        title={`Ranking · ${result.ranked.length} ${level === 'chunk' ? 'chunks' : 'documents'}`}
+        icon={FlaskConical}
+        subtitle={<>{result.latency_ms.toFixed(0)} ms{result.query_sent !== result.query && <> · sent as <span dir="auto" className="font-mono text-foreground">“{result.query_sent}”</span></>}</>}
+      >
+        <div className="space-y-2">
+          {slice.map((hit) => {
             const docGrade = relevant[hit.doc_id] ?? 0;
             const credited = hit.grade > 0;
             return (
@@ -243,6 +364,7 @@ function ResultsPanel({
           })}
           {result.ranked.length === 0 && <EmptyState icon={Search} title="No results" />}
         </div>
+        <Pager page={safePage} pageSize={PAGE_SIZE} total={result.ranked.length} onPage={setPage} />
       </Panel>
 
       <div className="space-y-3">
@@ -288,6 +410,9 @@ function ResultsPanel({
 
 function ExplainPanel({ response, k }: { response: SearchResponse; k: number }) {
   const { explain: e, result } = response;
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [result.query, e.rows.length, k]);
+
   if (!e.relevant_count) return null;
   const relInK = e.rows.filter((r) => r.in_k && r.relevant).length;
   const m = result.metrics;
@@ -302,33 +427,40 @@ function ExplainPanel({ response, k }: { response: SearchResponse; k: number }) 
     ['AP', `Σ P@rank ${e.ap_sum.toFixed(3)} ÷ min(|rel|, ${e.deep_k}) = ${e.ap_denominator}`, m['map']],
   ];
 
+  const totalPages = Math.max(1, Math.ceil(e.rows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const slice = e.rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   return (
     <Panel title="How the numbers were computed" icon={Sigma}
       subtitle={`Set metrics at k=${k}; rank-aware metrics at deep k=${e.deep_k}. Same arithmetic as retrieval_metrics.py.`}>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="py-1 pr-2">rank</th><th className="pr-2">unit</th><th className="pr-2">grade</th>
-                <th className="pr-2" title="position discount">1/log₂(r+1)</th><th className="pr-2">DCG gain</th>
-                <th className="pr-2" title="(2^grade − 1) × discount">graded gain</th><th className="pr-2">P@rank</th>
-              </tr>
-            </thead>
-            <tbody>
-              {e.rows.map((r) => (
-                <tr key={r.rank} className={cn('border-t border-white/5', r.relevant && 'text-foreground', !r.relevant && 'text-muted-foreground', !r.in_k && 'opacity-60')}>
-                  <td className="py-1 pr-2 font-mono">{r.rank}{r.rank === k && <span className="ml-1 text-neon">┤k</span>}</td>
-                  <td className="max-w-[180px] truncate pr-2 font-mono text-[10px]" title={r.unit_id}>{r.unit_id}</td>
-                  <td className="pr-2 font-mono">{r.relevant ? r.grade : '·'}</td>
-                  <td className="pr-2 font-mono">{r.discount.toFixed(3)}</td>
-                  <td className="pr-2 font-mono">{r.relevant ? r.dcg_gain.toFixed(3) : '·'}</td>
-                  <td className="pr-2 font-mono">{r.relevant ? r.graded_gain.toFixed(3) : '·'}</td>
-                  <td className="pr-2 font-mono">{r.precision_at_rank !== null ? `${r.cumulative_hits}/${r.rank} = ${r.precision_at_rank.toFixed(3)}` : '·'}</td>
+        <div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="py-1 pr-2">rank</th><th className="pr-2">unit</th><th className="pr-2">grade</th>
+                  <th className="pr-2" title="position discount">1/log₂(r+1)</th><th className="pr-2">DCG gain</th>
+                  <th className="pr-2" title="(2^grade − 1) × discount">graded gain</th><th className="pr-2">P@rank</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {slice.map((r) => (
+                  <tr key={r.rank} className={cn('border-t border-white/5', r.relevant && 'text-foreground', !r.relevant && 'text-muted-foreground', !r.in_k && 'opacity-60')}>
+                    <td className="py-1 pr-2 font-mono">{r.rank}{r.rank === k && <span className="ml-1 text-neon">┤k</span>}</td>
+                    <td className="max-w-[180px] truncate pr-2 font-mono text-[10px]" title={r.unit_id}>{r.unit_id}</td>
+                    <td className="pr-2 font-mono">{r.relevant ? r.grade : '·'}</td>
+                    <td className="pr-2 font-mono">{r.discount.toFixed(3)}</td>
+                    <td className="pr-2 font-mono">{r.relevant ? r.dcg_gain.toFixed(3) : '·'}</td>
+                    <td className="pr-2 font-mono">{r.relevant ? r.graded_gain.toFixed(3) : '·'}</td>
+                    <td className="pr-2 font-mono">{r.precision_at_rank !== null ? `${r.cumulative_hits}/${r.rank} = ${r.precision_at_rank.toFixed(3)}` : '·'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pager page={safePage} pageSize={PAGE_SIZE} total={e.rows.length} onPage={setPage} />
         </div>
         <div className="space-y-1.5">
           {formulas.map(([name, expr, value]) => (
@@ -366,30 +498,138 @@ function BatchRun({ bundle, variant, k, indexReady }: { bundle: DatasetBundle; v
   const runId = useMemo(() => (job?.status === 'done' ? String(job.result.run_id ?? '') : ''), [job]);
 
   return (
-    <Panel title="Score a whole split (exploratory)" icon={Play}
-      subtitle="The same configuration over every answerable item, with 95% bootstrap intervals. For A/B decisions, use Experiments."
-      actions={
-        <>
-          <SelectBox className="h-8 w-44 text-xs" value={split} onChange={setSplit}
-            options={[
-              { value: 'dev', label: `dev (${devCount} answerable)` },
-              ...(!hasHoldout ? [{ value: 'all' as const, label: 'all (no holdout exists)' }] : []),
-            ]} />
-          <Button size="sm" className="gap-1.5 text-xs" disabled={!indexReady || start.isPending || job?.status === 'running'} onClick={() => start.mutate(undefined)}>
-            <Play className="h-3.5 w-3.5" /> Run {variant.name}
-          </Button>
-        </>
-      }>
-      <div className="space-y-3">
-        {hasHoldout && (
-          <p className="text-[11px] text-muted-foreground">
-            Holdout items are not available here: ad-hoc runs would let you look at the holdout without a record. Evaluate the
-            holdout through a registered experiment.
+    <div className="space-y-4">
+      <Panel
+        title="Score a whole split (exploratory)"
+        icon={Play}
+        subtitle="The same configuration over every answerable item, with 95% bootstrap intervals. For confirmatory A/B decisions, use Experiments."
+        actions={
+          <>
+            <SelectBox className="h-8 w-44 text-xs" value={split} onChange={setSplit}
+              options={[
+                { value: 'dev', label: `dev (${devCount} answerable)` },
+                ...(!hasHoldout ? [{ value: 'all' as const, label: 'all (no holdout exists)' }] : []),
+              ]}
+            />
+            <Button size="sm" className="gap-1.5 text-xs" disabled={!indexReady || start.isPending || job?.status === 'running'} onClick={() => start.mutate(undefined)}>
+              <Play className="h-3.5 w-3.5" /> Run {variant.name}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Variant <strong className="text-foreground">{variant.name}</strong> · {variantSummary(variant)} · k={k}.
+            Edit it on the Probe tab.
           </p>
+          {hasHoldout && (
+            <p className="text-[11px] text-muted-foreground">
+              Holdout items are not available here: ad-hoc runs would let you look at the holdout without a record. Evaluate the
+              holdout through a registered experiment.
+            </p>
+          )}
+          {!indexReady && (
+            <p className="flex items-center gap-1.5 text-xs text-amber-300">
+              <AlertTriangle className="h-3.5 w-3.5" /> Index the corpus in Golden Sets → Index before scoring a split.
+            </p>
+          )}
+          <JobBar jobId={jobId} />
+        </div>
+      </Panel>
+      {runId ? <RunDetail runId={runId} title={`Result · ${variant.name}`} /> : null}
+    </div>
+  );
+}
+
+/* ── Compare A/B ─────────────────────────────────────────────────────────── */
+
+function CompareRuns({ datasetId }: { datasetId: string }) {
+  const runs = useRuns(datasetId);
+  const [a, setA] = useState<string | null>(null);
+  const [b, setB] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const [report, setReport] = useState<CompareReport | null>(null);
+  const [page, setPage] = useState(1);
+  const compare = useEvalMutation(() => evalApi.compare(a!, b!), { onSuccess: setReport });
+  const done = useMemo(
+    () => (runs.data ?? []).filter((r) => r.status === 'done').slice().sort((x, y) => y.created_at.localeCompare(x.created_at)),
+    [runs.data],
+  );
+
+  useEffect(() => { setPage(1); }, [datasetId, done.length]);
+
+  const totalPages = Math.max(1, Math.ceil(done.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const slice = done.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  return (
+    <div className="space-y-4">
+      <Panel
+        title="Run history"
+        icon={History}
+        subtitle="Every completed run on this dataset. Pick A and B, then compare. Exploratory — not a pre-registered claim."
+        actions={
+          <Button size="sm" className="gap-1.5 text-xs" disabled={!a || !b || a === b || compare.isPending} onClick={() => compare.mutate(undefined)}>
+            <GitCompare className="h-3.5 w-3.5" /> Compare A → B
+          </Button>
+        }
+      >
+        {done.length === 0 ? (
+          <NoRuns>Score a split on the Score tab, or run an experiment, then come back here.</NoRuns>
+        ) : (
+          <>
+            <div className="overflow-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-background/90 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="py-1 pr-2">A</th><th className="pr-2">B</th><th className="pr-2">run</th>
+                    <th className="pr-2">source</th><th className="pr-2">variant</th><th className="pr-2">split</th>
+                    <th className="pr-2">R@k</th><th className="pr-2">MRR</th><th>when</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {slice.map((r) => (
+                    <tr
+                      key={r.id}
+                      className={cn('cursor-pointer border-t border-white/5 hover:bg-white/[0.03]', open === r.id && 'bg-neon/[0.05]')}
+                      onClick={() => setOpen(r.id === open ? null : r.id)}
+                    >
+                      <td className="py-1.5 pr-2">
+                        <input type="radio" name="run-a" checked={a === r.id} onChange={() => setA(r.id)} onClick={(e) => e.stopPropagation()} />
+                      </td>
+                      <td className="pr-2">
+                        <input type="radio" name="run-b" checked={b === r.id} onChange={() => setB(r.id)} onClick={(e) => e.stopPropagation()} />
+                      </td>
+                      <td className="pr-2 font-mono text-[10px]">{r.id}</td>
+                      <td className="pr-2">{r.experiment_id ? <Pill tone="info">{r.experiment_id} · {r.arm}</Pill> : <Pill>ad-hoc</Pill>}</td>
+                      <td className="max-w-[220px] truncate pr-2 text-muted-foreground" title={variantSummary(r.variant)}>{r.variant.name}</td>
+                      <td className="pr-2">{r.split}</td>
+                      <td className="pr-2 font-mono">{fmt3(r.aggregates['recall@k']?.mean)}</td>
+                      <td className="pr-2 font-mono">{fmt3(r.aggregates['mrr']?.mean)}</td>
+                      <td className="whitespace-nowrap text-muted-foreground">{fmtTime(r.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pager page={safePage} pageSize={PAGE_SIZE} total={done.length} onPage={setPage} />
+            {(a || b) && (
+              <p className="text-[11px] text-muted-foreground">
+                A {a ? <span className="font-mono text-foreground">{a}</span> : '—'}
+                {' → '}
+                B {b ? <span className="font-mono text-foreground">{b}</span> : '—'}
+                {a && b && a === b && <span className="text-amber-300"> — pick two different runs</span>}
+              </p>
+            )}
+          </>
         )}
-        <JobBar jobId={jobId} />
-        {runId && <RunDetail runId={runId} title={`Result · ${variant.name}`} />}
-      </div>
-    </Panel>
+      </Panel>
+      {report && (
+        <Panel title="Exploratory comparison" icon={GitCompare} subtitle="Paired over the questions both runs scored. Not pre-registered — a lead, not a claim.">
+          <CompareView report={report} />
+        </Panel>
+      )}
+      {open && <RunDetail runId={open} />}
+    </div>
   );
 }

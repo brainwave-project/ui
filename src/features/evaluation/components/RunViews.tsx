@@ -1,12 +1,14 @@
-import { useMemo, useState } from 'react';
-import { AlertOctagon, ListOrdered } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertOctagon, Bug, LineChart as LineIcon, ListOrdered } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRun } from '@/features/evaluation/hooks/useEval';
 import { METRIC_INFO, METRIC_KEYS, fmt3, fmtSigned, fmtTime, shortHash } from '@/features/evaluation/lib/evalStats';
 import { ForestPlot, ScoreHistogram, VIZ } from './charts';
-import { EmptyState, Panel, Pill, Segmented, SelectBox, SeverityBadge } from './EvalPrimitives';
+import { EmptyState, Pager, Pill, SelectBox, SeverityBadge, Stat, SubTabs } from './EvalPrimitives';
 import { FailuresPanel, SweepsPanel } from './RunAnalysis';
 import type { Aggregate, CompareReport, ReportWarning, VariantSpec } from '@/types/eval';
+
+const PAGE_SIZE = 5;
 
 export const variantSummary = (v: VariantSpec) =>
   [
@@ -71,86 +73,166 @@ export function RunDetail({ runId, title }: { runId: string; title?: string }) {
   const { data: run, isLoading } = useRun(runId);
   const [metric, setMetric] = useState('recall@k');
   const [tab, setTab] = useState<RunTab>('summary');
+  const [page, setPage] = useState(1);
   const scored = useMemo(() => (run?.results ?? []).filter((r) => !r.error && r.metrics[metric] !== undefined), [run, metric]);
 
-  if (isLoading || !run) return <Panel title={title ?? runId} icon={ListOrdered}><div className="h-24" /></Panel>;
+  useEffect(() => { setPage(1); }, [metric, runId]);
+
+  if (isLoading || !run) {
+    return <div className="h-48 animate-pulse rounded-2xl border border-white/8 bg-card/30" />;
+  }
+
   const errors = run.results.filter((r) => r.error);
   const sorted = [...scored].sort((a, b) => a.metrics[metric] - b.metrics[metric]);
   const judged = run.diagnostics?.judged_at_k;
+  const failedCount = sorted.filter((r) => (r.metrics[metric] ?? 1) < 1).length;
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const slice = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
-    <Panel title={title ?? run.id} icon={ListOrdered}
-      subtitle={<>{variantSummary(run.variant)} · split <strong className="text-foreground">{run.split}</strong> · k={run.k} · {fmtTime(run.created_at)}</>}
-      actions={
-        <>
-          <Segmented size="xs" value={tab} onChange={setTab}
-            options={[{ value: 'summary', label: 'summary' }, { value: 'sweeps', label: 'sweeps' }, { value: 'failures', label: 'failures' }]} />
-          <Pill tone={run.dataset_status === 'frozen' ? 'info' : 'warn'} title={run.dataset_hash}>{run.dataset_status} {shortHash(run.dataset_hash)}</Pill>
-          <Pill tone={run.status === 'done' ? 'good' : run.status === 'failed' ? 'bad' : 'warn'}>{run.status}</Pill>
-        </>
-      }>
-      {tab === 'sweeps' && <SweepsPanel runId={run.id} />}
-      {tab === 'failures' && <FailuresPanel runId={run.id} />}
-      {tab === 'summary' && (
-        <div className="space-y-4">
-          {run.error && <p className="font-mono text-xs text-red-400">{run.error}</p>}
-          <AggregateTable aggregates={run.aggregates} k={run.k} />
-          <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-            {errors.length > 0 && <Pill tone="bad"><AlertOctagon className="h-3 w-3" /> {errors.length} errored — excluded, not scored 0</Pill>}
-            {run.skipped_unanswerable.length > 0 && <Pill tone="warn">{run.skipped_unanswerable.length} unanswerable skipped</Pill>}
-            {judged !== undefined && (
-              <Pill tone={judged >= 0.8 ? 'good' : judged >= 0.5 ? 'warn' : 'bad'}
-                title="Share of top-k results whose document carries any judgement. The rest were scored non-relevant by assumption.">
-                judged@{run.k} {Math.round(judged * 100)}%
-              </Pill>
-            )}
-            {run.diagnostics?.mean_latency_ms !== undefined && <Pill>{run.diagnostics.mean_latency_ms.toFixed(0)} ms / query</Pill>}
-          </div>
-          {judged !== undefined && judged < 0.8 && (
-            <p className="rounded-md border border-amber-500/20 bg-amber-500/[0.05] p-2 text-[11px] text-amber-200">
-              Only {Math.round(judged * 100)}% of the top-{run.k} results were ever judged. Unjudged results count as non-relevant, so
-              precision-type metrics here are a <strong>lower bound</strong>. Pool and judge in Golden Sets → Judge.
-            </p>
-          )}
-
-          <div className="grid gap-4 xl:grid-cols-2">
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-medium">Per-query distribution</p>
-                <SelectBox className="h-7 w-40 text-xs" value={metric} onChange={setMetric}
-                  options={METRIC_KEYS.map((m) => ({ value: m, label: METRIC_INFO[m].label }))} />
-              </div>
-              <ScoreHistogram series={[{ label: METRIC_INFO[metric].label, values: scored.map((r) => r.metrics[metric]), color: VIZ.baseline }]} />
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                Mass piled at 0 and 1 is the bimodal shape that makes a bare mean — and a t-interval — misleading.
-              </p>
-            </div>
-            <div className="max-h-[280px] overflow-auto">
-              <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-background/90 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                  <tr><th className="py-1 pr-2">item</th><th className="pr-2">query</th><th className="pr-2 text-right">{METRIC_INFO[metric].short}</th></tr>
-                </thead>
-                <tbody>
-                  {sorted.map((r) => (
-                    <tr key={r.item_id} className="border-t border-white/5">
-                      <td className="py-1 pr-2 font-mono text-[10px]">{r.item_id}</td>
-                      <td className="max-w-[260px] truncate pr-2" dir="auto" title={r.query}>{r.query}</td>
-                      <td className={cn('pr-2 text-right font-mono tabular-nums', r.metrics[metric] === 0 && 'text-red-400')}>{fmt3(r.metrics[metric])}</td>
-                    </tr>
-                  ))}
-                  {errors.map((r) => (
-                    <tr key={r.item_id} className="border-t border-white/5 text-red-400">
-                      <td className="py-1 pr-2 font-mono text-[10px]">{r.item_id}</td>
-                      <td className="pr-2" colSpan={2}>{r.error}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-card/30">
+      <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 font-display text-sm font-semibold">
+            <ListOrdered className="h-4 w-4 shrink-0 text-neon" /> {title ?? run.id}
+          </p>
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+            {variantSummary(run.variant)} · split <strong className="text-foreground">{run.split}</strong> · k={run.k} · {fmtTime(run.created_at)}
+          </p>
         </div>
-      )}
-    </Panel>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Pill tone={run.dataset_status === 'frozen' ? 'info' : 'warn'} title={run.dataset_hash}>
+            {run.dataset_status} {shortHash(run.dataset_hash)}
+          </Pill>
+          <Pill tone={run.status === 'done' ? 'good' : run.status === 'failed' ? 'bad' : 'warn'}>{run.status}</Pill>
+        </div>
+      </div>
+
+      <SubTabs
+        label="Run results"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { id: 'summary', label: 'Summary', icon: ListOrdered, count: scored.length },
+          { id: 'sweeps', label: 'Sweeps', icon: LineIcon },
+          { id: 'failures', label: 'Failures', icon: Bug, count: failedCount || undefined },
+        ]}
+      />
+
+      <div key={tab} className="animate-fade-in p-4">
+        {tab === 'sweeps' && <SweepsPanel runId={run.id} />}
+        {tab === 'failures' && <FailuresPanel runId={run.id} />}
+        {tab === 'summary' && (
+          <div className="space-y-4">
+            {run.error && (
+              <p className="rounded-xl border border-red-500/25 bg-red-500/[0.06] px-3 py-2 font-mono text-xs text-red-400">{run.error}</p>
+            )}
+
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              <Stat label="scored" value={scored.length} sub={errors.length ? `${errors.length} errored, excluded` : `${run.results.length} queries`} />
+              <Stat
+                label={METRIC_INFO['recall@k'].label}
+                value={fmt3(run.aggregates['recall@k']?.mean)}
+                sub={run.aggregates['recall@k'] ? `CI ${fmt3(run.aggregates['recall@k'].low)}–${fmt3(run.aggregates['recall@k'].high)}` : undefined}
+              />
+              <Stat
+                label={METRIC_INFO.mrr.label}
+                value={fmt3(run.aggregates.mrr?.mean)}
+                sub={run.aggregates.mrr ? `CI ${fmt3(run.aggregates.mrr.low)}–${fmt3(run.aggregates.mrr.high)}` : undefined}
+              />
+              <Stat
+                label={METRIC_INFO['ndcg@k'].label}
+                value={fmt3(run.aggregates['ndcg@k']?.mean)}
+                sub={run.diagnostics?.mean_latency_ms !== undefined ? `${run.diagnostics.mean_latency_ms.toFixed(0)} ms / query` : undefined}
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {errors.length > 0 && <Pill tone="bad"><AlertOctagon className="h-3 w-3" /> {errors.length} errored — excluded, not scored 0</Pill>}
+              {run.skipped_unanswerable.length > 0 && <Pill tone="warn">{run.skipped_unanswerable.length} unanswerable skipped</Pill>}
+              {judged !== undefined && (
+                <Pill tone={judged >= 0.8 ? 'good' : judged >= 0.5 ? 'warn' : 'bad'}
+                  title="Share of top-k results whose document carries any judgement. The rest were scored non-relevant by assumption.">
+                  judged@{run.k} {Math.round(judged * 100)}%
+                </Pill>
+              )}
+            </div>
+
+            {judged !== undefined && judged < 0.8 && (
+              <p className="rounded-xl border border-amber-500/20 bg-amber-500/[0.05] px-3 py-2 text-[11px] text-amber-200">
+                Only {Math.round(judged * 100)}% of the top-{run.k} results were ever judged. Unjudged results count as non-relevant, so
+                precision-type metrics here are a <strong>lower bound</strong>. Pool and judge in Golden Sets → Judge.
+              </p>
+            )}
+
+            {errors.length > 0 && (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/[0.04] p-3">
+                <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-red-300">Errored queries</p>
+                <ul className="space-y-1 font-mono text-[11px] text-red-300/90">
+                  {errors.map((r) => (
+                    <li key={r.item_id}><span className="text-red-200">{r.item_id}</span> · {r.error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="rounded-xl border border-white/8 bg-black/20 p-3">
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Means &amp; 95% bootstrap intervals</p>
+              <AggregateTable aggregates={run.aggregates} k={run.k} />
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="rounded-xl border border-white/8 bg-black/20 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium">Per-query distribution</p>
+                  <SelectBox className="h-7 w-40 text-xs" value={metric} onChange={setMetric}
+                    options={METRIC_KEYS.map((m) => ({ value: m, label: METRIC_INFO[m].label }))} />
+                </div>
+                {scored.length ? (
+                  <>
+                    <ScoreHistogram series={[{ label: METRIC_INFO[metric].label, values: scored.map((r) => r.metrics[metric]), color: VIZ.baseline }]} />
+                    <p className="mt-1.5 text-[10px] text-muted-foreground">
+                      Mass piled at 0 and 1 is the bimodal shape that makes a bare mean — and a t-interval — misleading.
+                    </p>
+                  </>
+                ) : (
+                  <EmptyState icon={ListOrdered} title="No scored queries" />
+                )}
+              </div>
+              <div className="rounded-xl border border-white/8 bg-black/20 p-3">
+                <p className="mb-2 text-xs font-medium">Per-query scores</p>
+                {sorted.length ? (
+                  <>
+                    <table className="w-full text-xs">
+                      <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                        <tr>
+                          <th className="py-1 pr-2">item</th>
+                          <th className="pr-2">query</th>
+                          <th className="text-right">{METRIC_INFO[metric].short}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {slice.map((r) => (
+                          <tr key={r.item_id} className="border-t border-white/5">
+                            <td className="py-1.5 pr-2 font-mono text-[10px] text-muted-foreground">{r.item_id}</td>
+                            <td className="max-w-[260px] truncate pr-2" dir="auto" title={r.query}>{r.query}</td>
+                            <td className={cn('text-right font-mono tabular-nums', r.metrics[metric] === 0 && 'text-red-400')}>{fmt3(r.metrics[metric])}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <Pager page={safePage} pageSize={PAGE_SIZE} total={sorted.length} onPage={setPage} />
+                  </>
+                ) : (
+                  <EmptyState icon={ListOrdered} title="Nothing to list" />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

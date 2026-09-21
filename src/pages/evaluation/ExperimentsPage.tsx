@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  CheckCircle2, ClipboardCheck, Download, FileBarChart, GitCompare, Lock, Play, Plus, Save,
-  Scale, ShieldAlert, Trash2, XCircle, AlertTriangle, Flag, History,
+  AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight,
+  ClipboardCheck, Download, FileBarChart, Flag, History, Lock, Play, Plus, Save,
+  Scale, Search, ShieldAlert, Trash2, XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -12,18 +14,19 @@ import {
 } from '@/features/evaluation/hooks/useEval';
 import {
   EmptyState, Field, JobBar, LockedBanner, Panel, Pill, PrincipalNote, Segmented, SelectBox, Stat,
-  TextArea, TextField, Toggle, downloadText,
+  SubTabs, TextArea, TextField, Toggle, downloadText,
 } from '@/features/evaluation/components/EvalPrimitives';
+import { preferredVersion } from '@/features/evaluation/components/DatasetPicker';
 import { DEFAULT_VARIANT, VariantEditor } from '@/features/evaluation/components/VariantEditor';
 import { ArmIntervals, ForestPlot, ScoreHistogram, VIZ, type IntervalMethod } from '@/features/evaluation/components/charts';
 import { BinnedHistogram } from '@/features/evaluation/components/statCharts';
-import { CompareView, NoRuns, RunDetail, WarningList, variantSummary } from '@/features/evaluation/components/RunViews';
+import { NoRuns, WarningList } from '@/features/evaluation/components/RunViews';
 import {
   METRIC_INFO, METRIC_KEYS, detectableEffect, fmt3, fmtSigned, fmtTime, shortHash,
 } from '@/features/evaluation/lib/evalStats';
 import { useEvalStore } from '@/store/eval.store';
 import type {
-  CompareReport, Experiment, ExperimentInput, ExperimentReport, Job, Split, Verdict,
+  Experiment, ExperimentInput, ExperimentReport, Job, Split, Verdict,
 } from '@/types/eval';
 
 const VERDICT: Record<Verdict, { label: string; tone: 'good' | 'bad' | 'warn' | 'info' | 'neutral'; cls: string }> = {
@@ -43,99 +46,476 @@ const blankExperiment = (datasetId: string, version: number): ExperimentInput =>
   secondary_metrics: ['mrr', 'ndcg@k'],
 });
 
-type Mode = 'experiments' | 'compare';
+const PAGE_SIZE = 8;
+const LIST_SPINE = ['Design', 'Register', 'Score', 'Report'] as const;
+
+function listingStep(e: Experiment) {
+  if (e.status === 'draft') return 0;
+  if (e.status === 'concluded') return 3;
+  if (e.runs.length === 0) return 1;
+  return 2;
+}
+
+function statusTone(status: Experiment['status']): 'warn' | 'info' | 'good' {
+  if (status === 'draft') return 'warn';
+  if (status === 'registered') return 'info';
+  return 'good';
+}
 
 export function ExperimentsPage() {
-  const [mode, setMode] = useState<Mode>('experiments');
+  return <ExperimentList />;
+}
+
+export function ExperimentCreatePage() {
+  return <ExperimentCreate />;
+}
+
+export function ExperimentDetailPage() {
+  const { experimentId } = useParams<{ experimentId: string }>();
+  if (!experimentId) return null;
+  return <ExperimentDetail experimentId={experimentId} />;
+}
+
+/* ── Listing ─────────────────────────────────────────────────────────────── */
+
+function ExperimentList() {
+  const experiments = useExperiments();
+  const datasets = useDatasets();
+  const navigate = useNavigate();
+  const selectExperiment = useEvalStore((s) => s.selectExperiment);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+
+  const names = useMemo(
+    () => Object.fromEntries((datasets.data ?? []).map((d) => [d.id, d.name])),
+    [datasets.data],
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const rows = [...(experiments.data ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    if (!q) return rows;
+    return rows.filter((e) =>
+      `${e.name} ${e.id} ${e.dataset_id} ${e.hypothesis} ${e.status}`.toLowerCase().includes(q));
+  }, [experiments.data, query]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const slice = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const registeredCount = (experiments.data ?? []).filter((e) => e.status !== 'draft').length;
+  const concludedCount = (experiments.data ?? []).filter((e) => e.status === 'concluded').length;
+
+  function openExperiment(e: Experiment) {
+    selectExperiment(e.id);
+    const tab = e.status === 'draft' ? 'design' : 'report';
+    navigate(`/evaluation/experiments/${encodeURIComponent(e.id)}?tab=${tab}`);
+  }
+
   return (
-    <div className="space-y-4">
-      <Segmented value={mode} onChange={setMode}
-        options={[
-          { value: 'experiments', label: <><Scale className="h-3.5 w-3.5" /> Experiments</> },
-          { value: 'compare',     label: <><GitCompare className="h-3.5 w-3.5" /> Run history &amp; compare</> },
-        ]} />
-      {mode === 'experiments' ? <ExperimentsWorkspace /> : <CompareWorkspace />}
+    <div className="space-y-5">
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-card/40">
+        <div className="pointer-events-none absolute inset-0 bg-grid opacity-30" />
+        <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-neon/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-plasma/15 blur-3xl" />
+        <div className="relative space-y-5 p-5 sm:p-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-neon">Evaluation</p>
+              <h3 className="mt-1 font-display text-2xl font-semibold tracking-tight">Experiments</h3>
+              <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+                Pre-register a comparison, score the arms, then read the report. Holdout access is logged.
+              </p>
+            </div>
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <div className="relative min-w-[180px] flex-1 sm:w-72 sm:flex-none">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <TextField
+                  className="h-10 rounded-xl bg-black/30 pl-9"
+                  placeholder="Search by name, dataset, status…"
+                  value={query}
+                  onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+                />
+              </div>
+              <Button size="sm" variant="neon" className="h-10 gap-1.5 px-4"
+                onClick={() => navigate('/evaluation/experiments/new')}>
+                <Plus className="h-3.5 w-3.5" /> New experiment
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <ol className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5" aria-label="Stages">
+              {LIST_SPINE.map((label, i) => (
+                <li key={label} className="flex items-center gap-1.5">
+                  {i > 0 && <span className="hidden h-px w-4 bg-white/15 sm:block" />}
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-2 py-0.5">
+                    <span className="font-mono text-[10px] text-neon/80">{i + 1}</span>
+                    <span className="text-[11px] text-muted-foreground">{label}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <div className="flex items-center gap-1.5">
+              <Pill>{experiments.data?.length ?? 0} experiments</Pill>
+              <Pill tone="info">{registeredCount} registered</Pill>
+              <Pill tone="good">{concludedCount} concluded</Pill>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {experiments.isLoading ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-52 animate-pulse rounded-3xl border border-white/8 bg-card/30" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-white/15 bg-card/20 px-6 py-16 text-center">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-neon/10 text-neon">
+            <Scale className="h-7 w-7" />
+          </span>
+          <p className="mt-4 font-display text-lg font-semibold">{query ? 'No matches' : 'No experiments yet'}</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+            {query
+              ? 'Try a different search, or clear the filter.'
+              : 'Pre-register a baseline vs treatment on a frozen golden set, then score the arms.'}
+          </p>
+          {!query && (
+            <Button size="sm" variant="neon" className="mt-5 h-10 gap-1.5"
+              onClick={() => navigate('/evaluation/experiments/new')}>
+              <Plus className="h-3.5 w-3.5" /> New experiment
+            </Button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {slice.map((e, i) => (
+              <ExperimentCard
+                key={e.id}
+                experiment={e}
+                datasetName={names[e.dataset_id]}
+                index={i}
+                onOpen={openExperiment}
+              />
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/8 bg-card/20 px-3 py-2">
+            <p className="text-xs text-muted-foreground">
+              Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
+            </p>
+            <div className="flex items-center gap-1">
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" disabled={safePage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                <Button
+                  key={n}
+                  size="sm"
+                  variant={n === safePage ? 'default' : 'ghost'}
+                  className={cn('h-8 min-w-[32px] px-2 font-mono text-xs', n === safePage && 'shadow-glow-sm')}
+                  onClick={() => setPage(n)}
+                >
+                  {n}
+                </Button>
+              ))}
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" disabled={safePage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-/* ── Experiments workspace ───────────────────────────────────────────────── */
-
-function ExperimentsWorkspace() {
-  const experiments = useExperiments();
-  const { datasetId, version, experimentId, selectExperiment } = useEvalStore();
-  const [creating, setCreating] = useState(false);
-  const selected = experiments.data?.find((e) => e.id === experimentId) ?? null;
-  const [tab, setTab] = useState<'design' | 'run' | 'report'>('design');
+function ExperimentCard({
+  experiment: e, datasetName, index, onOpen,
+}: {
+  experiment: Experiment;
+  datasetName?: string;
+  index: number;
+  onOpen: (e: Experiment) => void;
+}) {
+  const step = listingStep(e);
+  const verdict = e.conclusion?.decision ? VERDICT[e.conclusion.decision.verdict] : null;
+  const cue = e.status === 'draft'
+    ? { next: 'Write the hypothesis, then register before scoring', cta: 'Open design' }
+    : e.status === 'concluded'
+      ? { next: 'Decision is frozen in the record', cta: 'View report' }
+      : e.runs.length === 0
+        ? { next: 'Registered — score both arms on a split', cta: 'Open report' }
+        : { next: 'Read the paired comparison against the criteria', cta: 'Open report' };
+  const Icon = e.status === 'concluded' ? CheckCircle2 : e.status === 'registered' ? Lock : Scale;
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
-      <Panel title="Experiments" icon={Scale}
-        actions={<Button size="sm" className="gap-1.5 text-xs" disabled={!datasetId} onClick={() => { setCreating(true); selectExperiment(null); setTab('design'); }}><Plus className="h-3.5 w-3.5" /> New</Button>}>
-        <div className="space-y-1.5">
-          {(experiments.data ?? []).map((e) => (
-            <button key={e.id}
-              onClick={() => { selectExperiment(e.id); setCreating(false); setTab(e.status === 'draft' ? 'design' : 'report'); }}
-              className={cn('w-full rounded-lg border p-2 text-left transition-colors',
-                e.id === experimentId && !creating ? 'border-neon/40 bg-neon/10' : 'border-white/8 bg-card/30 hover:border-white/20')}>
-              <div className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{e.name}</span>
-                <Pill tone={e.status === 'draft' ? 'warn' : e.status === 'registered' ? 'info' : 'good'}>
-                  {e.status !== 'draft' && <Lock className="h-2.5 w-2.5" />}{e.status}
-                </Pill>
-              </div>
-              <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-                {e.dataset_id} v{e.dataset_version} · {METRIC_INFO[e.criteria.primary_metric]?.short ?? e.criteria.primary_metric} · {e.runs.length} runs
-              </p>
-              {e.conclusion?.decision && (
-                <Pill tone={VERDICT[e.conclusion.decision.verdict].tone} className="mt-1">{VERDICT[e.conclusion.decision.verdict].label}</Pill>
-              )}
-            </button>
-          ))}
-          {experiments.data?.length === 0 && <p className="text-xs text-muted-foreground">No experiments yet.</p>}
-        </div>
-      </Panel>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(e)}
+      onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen(e); } }}
+      style={{ animationDelay: `${index * 60}ms` }}
+      className="group relative animate-fade-in-up cursor-pointer overflow-hidden rounded-3xl border border-white/10 bg-card/40 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-neon/40 hover:shadow-glow"
+    >
+      <span className={cn(
+        'absolute inset-y-0 left-0 w-1 transition-colors',
+        e.status === 'concluded' ? 'bg-emerald-400 shadow-[0_0_12px_hsl(160_80%_50%/0.6)]'
+          : e.status === 'registered' ? 'bg-sky-400/80' : 'bg-neon/80 group-hover:bg-neon',
+      )} />
+      <div className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-neon/10 blur-2xl transition-opacity group-hover:opacity-100" />
 
-      <div className="min-w-0 space-y-4">
-        {creating && datasetId && version ? (
-          <ExperimentDesigner
-            key="new"
-            initial={blankExperiment(datasetId, version)}
-            onSaved={(e) => { setCreating(false); selectExperiment(e.id); }}
-          />
-        ) : selected ? (
-          <>
-            <div className="flex flex-wrap items-center gap-3">
-              <Segmented value={tab} onChange={setTab}
-                options={[
-                  { value: 'design', label: <><ClipboardCheck className="h-3.5 w-3.5" /> 1 · Design</> },
-                  { value: 'run',    label: <><Play className="h-3.5 w-3.5" /> 2 · Run</> },
-                  { value: 'report', label: <><FileBarChart className="h-3.5 w-3.5" /> 3 · Report</> },
-                ]} />
-              <span className="font-mono text-[11px] text-muted-foreground">
-                {selected.status === 'draft' ? 'draft — design is editable' : `registered ${fmtTime(selected.registered_at)} · dataset ${shortHash(selected.dataset_hash)}`}
-              </span>
+      <div className="relative p-5 pl-6">
+        <div className="flex items-start gap-3">
+          <span className={cn(
+            'flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition-colors',
+            e.status === 'concluded'
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              : e.status === 'registered'
+                ? 'border-sky-500/30 bg-sky-500/10 text-sky-300'
+                : 'border-neon/20 bg-neon/10 text-neon group-hover:bg-neon/20',
+          )}>
+            <Icon className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate font-display text-base font-semibold" title={e.name || e.id}>{e.name || 'Untitled experiment'}</p>
+              <Pill tone={statusTone(e.status)}>
+                {e.status !== 'draft' && <Lock className="h-2.5 w-2.5" />}{e.status}
+              </Pill>
+              {verdict && <Pill tone={verdict.tone}>{verdict.label}</Pill>}
             </div>
-            {tab === 'design' && <ExperimentDesigner key={selected.id + selected.status} initial={selected} experiment={selected} onSaved={() => {}} />}
-            {tab === 'run'    && <ExperimentRunPanel experiment={selected} onReport={() => setTab('report')} />}
-            {tab === 'report' && <ExperimentReportView experiment={selected} />}
-          </>
-        ) : (
-          <Panel title="Experiment design" icon={Scale}>
-            <EmptyState icon={Scale} title="Design an experiment">
-              An experiment compares a <strong>baseline</strong> and a <strong>treatment</strong> that differ in one thing, on a
-              frozen dataset, against success criteria written down <em>before</em> any result is seen.
-            </EmptyState>
-          </Panel>
+            <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">{e.id}</p>
+          </div>
+        </div>
+
+        <ol className="mt-4 flex items-center gap-1" aria-label="Progress">
+          {LIST_SPINE.map((label, i) => {
+            const done = i < step;
+            const here = i === step;
+            return (
+              <li key={label} className="flex min-w-0 flex-1 items-center gap-1">
+                <span
+                  title={label}
+                  className={cn(
+                    'h-1.5 flex-1 rounded-full transition-colors',
+                    here ? 'bg-neon shadow-glow-sm' : done ? 'bg-neon/50' : 'bg-white/10',
+                  )}
+                />
+              </li>
+            );
+          })}
+        </ol>
+        <div className="mt-1.5 flex justify-between font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span>{LIST_SPINE[step]}</span>
+          <span>{step + 1}/4</span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Dataset</p>
+            <p className="truncate font-display text-sm font-semibold" title={datasetName ?? e.dataset_id}>
+              {datasetName ?? e.dataset_id} <span className="font-mono text-xs font-normal text-muted-foreground">v{e.dataset_version}</span>
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Primary</p>
+            <p className="truncate font-display text-sm font-semibold">{METRIC_INFO[e.criteria.primary_metric]?.short ?? e.criteria.primary_metric}</p>
+          </div>
+          <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Runs</p>
+            <p className="font-display text-lg font-semibold tabular-nums">{e.runs.length}</p>
+          </div>
+        </div>
+
+        <p className="mt-3 line-clamp-2 text-xs text-muted-foreground" title={e.hypothesis}>
+          {e.hypothesis || 'No hypothesis written yet.'}
+        </p>
+
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/8 pt-3">
+          <p className="text-xs text-muted-foreground">{cue.next}</p>
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-neon">
+            {cue.cta} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Create ──────────────────────────────────────────────────────────────── */
+
+function ExperimentCreate() {
+  const navigate = useNavigate();
+  const datasets = useDatasets();
+  const { datasetId, version, select, selectExperiment } = useEvalStore();
+
+  const target = useMemo(() => {
+    const rows = datasets.data ?? [];
+    if (datasetId && version != null && rows.some((d) => d.id === datasetId && d.versions.some((v) => v.version === version))) {
+      return { datasetId, version };
+    }
+    const first = rows[0];
+    const v = first ? preferredVersion(first.versions) : undefined;
+    return first && v != null ? { datasetId: first.id, version: v } : null;
+  }, [datasets.data, datasetId, version]);
+
+  useEffect(() => {
+    if (target && (datasetId !== target.datasetId || version !== target.version)) {
+      select(target.datasetId, target.version);
+    }
+  }, [target, datasetId, version, select]);
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start gap-3">
+        <Button size="sm" variant="ghost" className="mt-0.5 h-9 gap-1.5 text-xs"
+          onClick={() => navigate('/evaluation/experiments')}>
+          <ArrowLeft className="h-3.5 w-3.5" /> Experiments
+        </Button>
+        <div className="min-w-0">
+          <h3 className="font-display text-lg font-semibold">New experiment</h3>
+          <p className="text-sm text-muted-foreground">
+            Write the hypothesis and lock the arms before any result exists.
+          </p>
+        </div>
+      </div>
+
+      {datasets.isLoading ? (
+        <div className="h-48 animate-pulse rounded-2xl border border-white/8 bg-card/30" />
+      ) : !target ? (
+        <Panel title="Need a golden set" icon={Scale}>
+          <EmptyState icon={Scale} title="Create a golden set first">
+            Experiments run against a versioned dataset. Open Golden Sets, then come back here.
+            <div className="mt-4">
+              <Button size="sm" variant="neon" className="gap-1.5" onClick={() => navigate('/evaluation/dataset')}>
+                Go to Golden Sets
+              </Button>
+            </div>
+          </EmptyState>
+        </Panel>
+      ) : (
+        <ExperimentDesigner
+          key={`${target.datasetId}@${target.version}`}
+          initial={blankExperiment(target.datasetId, target.version)}
+          onSaved={(e) => {
+            selectExperiment(e.id);
+            navigate(`/evaluation/experiments/${encodeURIComponent(e.id)}?tab=design`);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── Detail ──────────────────────────────────────────────────────────────── */
+
+function ExperimentDetail({ experimentId }: { experimentId: string }) {
+  const navigate = useNavigate();
+  const experiments = useExperiments();
+  const selectExperiment = useEvalStore((s) => s.selectExperiment);
+  const selected = experiments.data?.find((e) => e.id === experimentId) ?? null;
+  const [params, setParams] = useSearchParams();
+  const raw = params.get('tab');
+  const tab: 'design' | 'report' = raw === 'report' || raw === 'design'
+    ? raw
+    : (selected?.status === 'draft' ? 'design' : 'report');
+
+  useEffect(() => { selectExperiment(experimentId); }, [experimentId, selectExperiment]);
+
+  const setTab = (next: 'design' | 'report') => {
+    const merged = new URLSearchParams(params);
+    merged.set('tab', next);
+    setParams(merged);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <Button size="sm" variant="ghost" className="mt-0.5 h-9 gap-1.5 text-xs"
+            onClick={() => navigate('/evaluation/experiments')}>
+            <ArrowLeft className="h-3.5 w-3.5" /> Experiments
+          </Button>
+          <div className="min-w-0">
+            <h3 className="truncate font-display text-lg font-semibold">{selected?.name ?? experimentId}</h3>
+            <p className="truncate font-mono text-[11px] text-muted-foreground">
+              {selected
+                ? selected.status === 'draft'
+                  ? 'draft — design is editable'
+                  : `${selected.status} ${fmtTime(selected.registered_at)} · dataset ${shortHash(selected.dataset_hash)}`
+                : experimentId}
+            </p>
+          </div>
+        </div>
+        {selected && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Pill tone={statusTone(selected.status)}>
+              {selected.status !== 'draft' && <Lock className="h-2.5 w-2.5" />}{selected.status}
+            </Pill>
+            {selected.conclusion?.decision && (
+              <Pill tone={VERDICT[selected.conclusion.decision.verdict].tone}>
+                {VERDICT[selected.conclusion.decision.verdict].label}
+              </Pill>
+            )}
+          </div>
         )}
       </div>
+
+      {experiments.isLoading && <div className="h-48 animate-pulse rounded-2xl border border-white/8 bg-card/30" />}
+
+      {!experiments.isLoading && !selected && (
+        <Panel title="Unknown experiment" icon={Scale}>
+          <EmptyState icon={Scale} title="This experiment is not on the lab">
+            It may have been removed, or the Eval Lab API is on a different stack.
+          </EmptyState>
+        </Panel>
+      )}
+
+      {selected && (
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-card/30">
+          <SubTabs
+            label="Experiment"
+            value={tab}
+            onChange={setTab}
+            options={[
+              { id: 'design', label: 'Design', icon: ClipboardCheck },
+              { id: 'report', label: 'Report', icon: FileBarChart, count: selected.runs.length || undefined },
+            ]}
+          />
+          <div key={tab} className="animate-fade-in p-4">
+            {tab === 'design' && (
+              <ExperimentDesigner
+                key={selected.id + selected.status}
+                initial={selected}
+                experiment={selected}
+                onSaved={() => {}}
+                onDeleted={() => {
+                  selectExperiment(null);
+                  navigate('/evaluation/experiments');
+                }}
+              />
+            )}
+            {tab === 'report' && (
+              <div className="space-y-4">
+                <ExperimentRunPanel experiment={selected} />
+                <ExperimentReportView experiment={selected} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ── Design & pre-registration ───────────────────────────────────────────── */
 
-function ExperimentDesigner({ initial, experiment, onSaved }: { initial: ExperimentInput; experiment?: Experiment; onSaved: (e: Experiment) => void }) {
+function ExperimentDesigner({ initial, experiment, onSaved, onDeleted }: {
+  initial: ExperimentInput; experiment?: Experiment; onSaved: (e: Experiment) => void; onDeleted?: () => void;
+}) {
   const [draft, setDraft] = useState<ExperimentInput>(initial);
   const locked = !!experiment && experiment.status !== 'draft';
   const datasets = useDatasets();
@@ -156,7 +536,7 @@ function ExperimentDesigner({ initial, experiment, onSaved }: { initial: Experim
   const register = useEvalMutation((id: string) => evalApi.register(id),
     { success: 'Registered — the design is now locked', invalidate: [evalKeys.experiments as unknown as unknown[]] });
   const remove = useEvalMutation((id: string) => evalApi.deleteExperiment(id),
-    { success: 'Experiment deleted', invalidate: [evalKeys.experiments as unknown as unknown[]] });
+    { success: 'Experiment deleted', invalidate: [evalKeys.experiments as unknown as unknown[]], onSuccess: () => onDeleted?.() });
 
   const changed = (Object.keys(draft.baseline) as (keyof typeof draft.baseline)[])
     .filter((f) => f !== 'name' && draft.baseline[f] !== draft.treatment[f]);
@@ -323,7 +703,7 @@ function ExperimentDesigner({ initial, experiment, onSaved }: { initial: Experim
 
 /* ── Run ─────────────────────────────────────────────────────────────────── */
 
-function ExperimentRunPanel({ experiment, onReport }: { experiment: Experiment; onReport: () => void }) {
+function ExperimentRunPanel({ experiment }: { experiment: Experiment }) {
   const [jobId, setJobId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [ack, setAck] = useState(false);
@@ -369,9 +749,6 @@ function ExperimentRunPanel({ experiment, onReport }: { experiment: Experiment; 
         </Panel>
       </div>
       <JobBar jobId={jobId} />
-      {job?.status === 'done' && (
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={onReport}><FileBarChart className="h-3.5 w-3.5" /> Open report</Button>
-      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Run history" icon={History} subtitle="Every run this experiment made. None are ever dropped.">
@@ -443,7 +820,7 @@ function ExperimentReportView({ experiment }: { experiment: Experiment }) {
       <div className="space-y-4">
         {header}
         <Panel title="Report" icon={FileBarChart}>
-          <NoRuns>Missing runs on <strong>{split}</strong> for: {report.missing?.join(', ')}. Use the Run tab.</NoRuns>
+          <NoRuns>Missing runs on <strong>{split}</strong> for: {report.missing?.join(', ')}. Score both arms above.</NoRuns>
           <WarningList warnings={report.warnings} />
         </Panel>
       </div>
@@ -681,56 +1058,5 @@ function IntegrityPanel({ report, experiment }: { report: ExperimentReport; expe
         </div>
       </div>
     </Panel>
-  );
-}
-
-/* ── Run history & ad-hoc comparison ─────────────────────────────────────── */
-
-function CompareWorkspace() {
-  const { datasetId } = useEvalStore();
-  const runs = useRuns(datasetId);
-  const [a, setA] = useState<string | null>(null);
-  const [b, setB] = useState<string | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
-  const [report, setReport] = useState<CompareReport | null>(null);
-  const compare = useEvalMutation(() => evalApi.compare(a!, b!), { onSuccess: setReport });
-  const done = useMemo(() => (runs.data ?? []).filter((r) => r.status === 'done'), [runs.data]);
-
-  return (
-    <div className="space-y-4">
-      <Panel title="Run history" icon={History} subtitle="Every run on the selected dataset. Pick A and B for an exploratory paired comparison."
-        actions={<Button size="sm" className="gap-1.5 text-xs" disabled={!a || !b || a === b || compare.isPending} onClick={() => compare.mutate(undefined)}><GitCompare className="h-3.5 w-3.5" /> Compare A → B</Button>}>
-        {done.length === 0 ? <NoRuns>Run a split from the Retrieval tab or an experiment.</NoRuns> : (
-          <div className="max-h-[420px] overflow-auto">
-            <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-background/90 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                <tr><th className="py-1 pr-2">A</th><th className="pr-2">B</th><th className="pr-2">run</th><th className="pr-2">source</th><th className="pr-2">variant</th><th className="pr-2">split</th><th className="pr-2">R@k</th><th className="pr-2">MRR</th><th>dataset</th></tr>
-              </thead>
-              <tbody>
-                {done.map((r) => (
-                  <tr key={r.id} className={cn('cursor-pointer border-t border-white/5 hover:bg-white/[0.03]', open === r.id && 'bg-neon/[0.05]')} onClick={() => setOpen(r.id)}>
-                    <td className="py-1 pr-2"><input type="radio" name="run-a" checked={a === r.id} onChange={() => setA(r.id)} onClick={(e) => e.stopPropagation()} /></td>
-                    <td className="pr-2"><input type="radio" name="run-b" checked={b === r.id} onChange={() => setB(r.id)} onClick={(e) => e.stopPropagation()} /></td>
-                    <td className="pr-2 font-mono text-[10px]">{r.id}</td>
-                    <td className="pr-2">{r.experiment_id ? <Pill tone="info">{r.experiment_id} · {r.arm}</Pill> : <Pill>ad-hoc</Pill>}</td>
-                    <td className="max-w-[240px] truncate pr-2 text-muted-foreground" title={variantSummary(r.variant)}>{r.variant.name} · {variantSummary(r.variant)}</td>
-                    <td className="pr-2">{r.split}</td>
-                    <td className="pr-2 font-mono">{fmt3(r.aggregates['recall@k']?.mean)}</td>
-                    <td className="pr-2 font-mono">{fmt3(r.aggregates['mrr']?.mean)}</td>
-                    <td className="font-mono text-[10px] text-muted-foreground">v{r.dataset_version} {shortHash(r.dataset_hash)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Panel>
-      {report && (
-        <Panel title="Exploratory comparison" icon={GitCompare} subtitle="Paired over the questions both runs scored. Not pre-registered — a lead, not a claim.">
-          <CompareView report={report} />
-        </Panel>
-      )}
-      {open && <RunDetail runId={open} />}
-    </div>
   );
 }

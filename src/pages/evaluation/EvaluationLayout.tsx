@@ -11,12 +11,7 @@ const PAGE_INTRO: { prefix: string; title: string; blurb: string }[] = [
   {
     prefix: '/evaluation/retrieval',
     title: 'Retrieval',
-    blurb: 'Probe a variant on a query, grade the hits, and save judgements back to the golden set.',
-  },
-  {
-    prefix: '/evaluation/experiments',
-    title: 'Experiments',
-    blurb: 'Pre-register a comparison, run it, then read the report. Holdout access is logged.',
+    blurb: 'Probe one query, score a split, then compare A/B runs.',
   },
   {
     prefix: '/evaluation/stats',
@@ -35,7 +30,8 @@ export function EvaluationLayout() {
   const status = useEvalStatus();
   const datasets = useDatasets();
   const { datasetId, version, select } = useEvalStore();
-  const onDatasetConstruction = pathname.startsWith('/evaluation/dataset');
+  const onGoldenSets = pathname.startsWith('/evaluation/dataset');
+  const onExperiments = pathname.startsWith('/evaluation/experiments');
   const rows = datasets.data ?? [];
   const intro = PAGE_INTRO.find((p) => pathname.startsWith(p.prefix));
 
@@ -50,7 +46,7 @@ export function EvaluationLayout() {
   }, [datasets.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const offline = status.isError;
-  const showDatasetSelect = !onDatasetConstruction && rows.length > 0;
+  const showDatasetSelect = !onGoldenSets && !onExperiments && rows.length > 0;
 
   return (
     <div>

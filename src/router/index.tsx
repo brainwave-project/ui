@@ -20,7 +20,7 @@ import { EvaluationLayout }        from '@/pages/evaluation/EvaluationLayout';
 import { DatasetConstructionPage } from '@/pages/evaluation/DatasetConstructionPage';
 import { DataLabPage }             from '@/pages/evaluation/DataLabPage';
 import { RetrievalEvalPage }       from '@/pages/evaluation/RetrievalEvalPage';
-import { ExperimentsPage }         from '@/pages/evaluation/ExperimentsPage';
+import { ExperimentsPage, ExperimentCreatePage, ExperimentDetailPage } from '@/pages/evaluation/ExperimentsPage';
 import { StatsLabPage }            from '@/pages/evaluation/StatsLabPage';
 import { LearningPathPage }        from '@/pages/evaluation/LearningPathPage';
 
@@ -41,7 +41,9 @@ const evaluationRoute: RouteObject = {
     { path: 'dataset/:datasetId', element: <DatasetConstructionPage /> },
     { path: 'data-lab',     element: <DataLabPage /> },
     { path: 'retrieval',    element: <RetrievalEvalPage /> },
-    { path: 'experiments',  element: <ExperimentsPage /> },
+    { path: 'experiments', element: <ExperimentsPage /> },
+    { path: 'experiments/new', element: <ExperimentCreatePage /> },
+    { path: 'experiments/:experimentId', element: <ExperimentDetailPage /> },
     { path: 'stats',        element: <StatsLabPage /> },
     { path: 'learn',        element: <LearningPathPage /> },
   ],
