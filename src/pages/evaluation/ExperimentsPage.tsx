@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight,
-  ClipboardCheck, Download, FileBarChart, Flag, History, Lock, Play, Plus, Save,
+  ClipboardCheck, Download, FileBarChart, Flag, History, ListOrdered, Lock, Play, Plus, Save,
   Scale, Search, ShieldAlert, Trash2, XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import {
   evalKeys, useDatasets, useEvalMutation, useExperimentReport, useExperiments, useJob, useRuns,
 } from '@/features/evaluation/hooks/useEval';
 import {
-  EmptyState, Field, JobBar, LockedBanner, Panel, Pill, PrincipalNote, Segmented, SelectBox, Stat,
+  EmptyState, Field, JobBar, LockedBanner, Pager, Panel, Pill, PrincipalNote, Segmented, SelectBox, Stat,
   SubTabs, TextArea, TextField, Toggle, downloadText,
 } from '@/features/evaluation/components/EvalPrimitives';
 import { preferredVersion } from '@/features/evaluation/components/DatasetPicker';
@@ -76,7 +76,7 @@ export function ExperimentDetailPage() {
   return <ExperimentDetail experimentId={experimentId} />;
 }
 
-/* ── Listing ─────────────────────────────────────────────────────────────── */
+/* â”€â”€ Listing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function ExperimentList() {
   const experiments = useExperiments();
@@ -345,7 +345,7 @@ function ExperimentCard({
   );
 }
 
-/* ── Create ──────────────────────────────────────────────────────────────── */
+/* â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function ExperimentCreate() {
   const navigate = useNavigate();
@@ -410,7 +410,7 @@ function ExperimentCreate() {
   );
 }
 
-/* ── Detail ──────────────────────────────────────────────────────────────── */
+/* â”€â”€ Detail â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function ExperimentDetail({ experimentId }: { experimentId: string }) {
   const navigate = useNavigate();
@@ -498,12 +498,7 @@ function ExperimentDetail({ experimentId }: { experimentId: string }) {
                 }}
               />
             )}
-            {tab === 'report' && (
-              <div className="space-y-4">
-                <ExperimentRunPanel experiment={selected} />
-                <ExperimentReportView experiment={selected} />
-              </div>
-            )}
+            {tab === 'report' && <ExperimentReportTab experiment={selected} />}
           </div>
         </div>
       )}
@@ -511,7 +506,7 @@ function ExperimentDetail({ experimentId }: { experimentId: string }) {
   );
 }
 
-/* ── Design & pre-registration ───────────────────────────────────────────── */
+/* â”€â”€ Design & pre-registration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function ExperimentDesigner({ initial, experiment, onSaved, onDeleted }: {
   initial: ExperimentInput; experiment?: Experiment; onSaved: (e: Experiment) => void; onDeleted?: () => void;
@@ -580,7 +575,7 @@ function ExperimentDesigner({ initial, experiment, onSaved, onDeleted }: {
             </div>
             <Field label="Hypothesis" hint="If we <change>, then <primary metric> will <increase> by at least <min effect>, because <mechanism>.">
               <TextArea className="min-h-[70px] font-sans text-sm" value={draft.hypothesis} onChange={(e) => set('hypothesis', e.target.value)}
-                placeholder="If we normalise Arabic queries (conservative), recall@5 on the Arabic set will increase by ≥ 0.05, because alef/hamza and digit variants will match the document spelling." />
+                placeholder="If we normalise Arabic queries (conservative), recall@5 on the Arabic set will increase by â‰¥ 0.05, because alef/hamza and digit variants will match the document spelling." />
             </Field>
             <Field label="Rationale / prior evidence">
               <TextArea className="min-h-[44px] font-sans" value={draft.rationale} onChange={(e) => set('rationale', e.target.value)} />
@@ -701,16 +696,113 @@ function ExperimentDesigner({ initial, experiment, onSaved, onDeleted }: {
   );
 }
 
-/* ── Run ─────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Report tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-function ExperimentRunPanel({ experiment }: { experiment: Experiment }) {
+const REPORT_PAGE = 5;
+type ReportChapter = 'score' | 'verdict' | 'queries' | 'record';
+
+const REPORT_CHAPTERS: { id: ReportChapter; label: string; icon: typeof Play; hint: string }[] = [
+  { id: 'score',   label: 'Score',   icon: Play,         hint: 'Run both arms' },
+  { id: 'verdict', label: 'Verdict', icon: Flag,         hint: 'Primary decision' },
+  { id: 'queries', label: 'Queries', icon: ListOrdered,  hint: 'Where the mean comes from' },
+  { id: 'record',  label: 'Record',  icon: History,      hint: 'Power, guardrails, integrity' },
+];
+
+function ExperimentReportTab({ experiment }: { experiment: Experiment }) {
+  const [chapter, setChapter] = useState<ReportChapter>(experiment.runs.length ? 'verdict' : 'score');
+  const [split, setSplit] = useState<Split>(experiment.holdout_access.length ? 'holdout' : 'dev');
+  const [method, setMethod] = useState<IntervalMethod>('bootstrap');
+  const [note, setNote] = useState('');
+  const { data: report, isFetching, isError } = useExperimentReport(experiment.id, split, true);
+  const conclude = useEvalMutation((n: string) => evalApi.conclude(experiment.id, n),
+    { success: 'Experiment concluded', invalidate: [evalKeys.experiments as unknown as unknown[]] });
+
+  const ready = report?.status === 'ok';
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <div
+          className="grid min-w-0 flex-1 grid-cols-2 gap-1 rounded-xl border border-white/10 bg-black/25 p-1 sm:grid-cols-4"
+          role="tablist"
+          aria-label="Report chapters"
+        >
+          {REPORT_CHAPTERS.map((c) => {
+            const active = chapter === c.id;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                title={c.hint}
+                onClick={() => setChapter(c.id)}
+                className={cn(
+                  'flex min-h-[2.25rem] items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors',
+                  active ? 'bg-neon/15 text-neon shadow-glow-inner' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <c.icon className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{c.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <Segmented value={split} onChange={setSplit}
+          options={[{ value: 'dev', label: 'dev' }, { value: 'holdout', label: 'holdout' }]} />
+        {isFetching && <span className="text-[11px] text-muted-foreground">bootstrapping…</span>}
+        {ready && (
+          <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs"
+            onClick={() => downloadText(`${experiment.id}-${split}-report.json`, JSON.stringify(report, null, 2))}>
+            <Download className="h-3.5 w-3.5" /> Export
+          </Button>
+        )}
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">
+        Viewing <strong className="text-foreground">{split}</strong>
+        {split === 'holdout' ? ' · confirmatory' : ' · exploratory — not a decision'}
+        {ready && report.confirmatory === false && split === 'holdout' ? ' · not yet confirmatory' : ''}
+      </p>
+
+      <div key={chapter} className="animate-fade-in">
+        {chapter === 'score' && <ScoreChapter experiment={experiment} />}
+        {chapter !== 'score' && (isError || !report) && (
+          <div className="h-40 animate-pulse rounded-xl border border-white/8 bg-black/20" />
+        )}
+        {chapter !== 'score' && report && report.status !== 'ok' && (
+          <div className="space-y-3">
+            <EmptyState icon={FileBarChart} title={`No ${split} report yet`}>
+              Missing runs for: {report.missing?.join(', ')}. Score both arms on Score, then come back.
+            </EmptyState>
+            <WarningList warnings={report.warnings} />
+          </div>
+        )}
+        {chapter === 'verdict' && ready && report && (
+          <VerdictChapter
+            experiment={experiment} report={report} split={split} method={method} setMethod={setMethod}
+            note={note} setNote={setNote} conclude={conclude}
+          />
+        )}
+        {chapter === 'queries' && ready && report && <QueriesChapter report={report} />}
+        {chapter === 'record' && ready && report && <RecordChapter experiment={experiment} report={report} />}
+      </div>
+    </div>
+  );
+}
+
+function ScoreChapter({ experiment }: { experiment: Experiment }) {
   const [jobId, setJobId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [ack, setAck] = useState(false);
+  const [page, setPage] = useState(1);
   const trackJob = useEvalStore((s) => s.trackJob);
   const { data: job } = useJob(jobId);
   const runs = useRuns(experiment.dataset_id);
-  const mine = (runs.data ?? []).filter((r) => r.experiment_id === experiment.id);
+  const mine = useMemo(
+    () => (runs.data ?? []).filter((r) => r.experiment_id === experiment.id),
+    [runs.data, experiment.id],
+  );
 
   const start = useEvalMutation(
     (split: Split) => evalApi.runExperiment(experiment.id, split, reason),
@@ -720,18 +812,38 @@ function ExperimentRunPanel({ experiment }: { experiment: Experiment }) {
   const registered = experiment.status === 'registered';
   const peeks = experiment.holdout_access.length;
   const running = job?.status === 'running';
+  const concluded = experiment.status === 'concluded';
+
+  useEffect(() => { setPage(1); }, [mine.length]);
+  const totalPages = Math.max(1, Math.ceil(mine.length / REPORT_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const slice = mine.slice((safePage - 1) * REPORT_PAGE, safePage * REPORT_PAGE);
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Dev split · exploratory" icon={Play} subtitle="Iterate freely. Numbers here guide the next change; they do not decide.">
-          <Button className="gap-1.5" disabled={running || start.isPending || experiment.status === 'concluded'} onClick={() => start.mutate('dev')}>
-            <Play className="h-4 w-4" /> Run both arms on dev
+      <div className="grid gap-3 lg:grid-cols-2">
+        <section className="rounded-xl border border-white/8 bg-black/20 p-4">
+          <p className="flex items-center gap-2 text-xs font-medium">
+            <Play className="h-3.5 w-3.5 text-neon" /> Dev split
+            <Pill>exploratory</Pill>
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Iterate freely. Numbers here guide the next change; they do not decide.
+          </p>
+          <Button size="sm" className="mt-3 gap-1.5 text-xs" disabled={running || start.isPending || concluded}
+            onClick={() => start.mutate('dev')}>
+            <Play className="h-3.5 w-3.5" /> Run both arms on dev
           </Button>
-        </Panel>
-        <Panel title="Holdout split · confirmatory" icon={ShieldAlert}
-          subtitle={registered ? `Accessed ${peeks} time${peeks === 1 ? '' : 's'} so far.` : 'Register the experiment first.'}>
-          <div className="space-y-2">
+        </section>
+        <section className="rounded-xl border border-white/8 bg-black/20 p-4">
+          <p className="flex items-center gap-2 text-xs font-medium">
+            <ShieldAlert className="h-3.5 w-3.5 text-neon" /> Holdout split
+            <Pill tone={registered ? 'info' : 'warn'}>{registered ? `accessed ${peeks}Ã—` : 'register first'}</Pill>
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Confirmatory. Each look is logged. Register the design before evaluating.
+          </p>
+          <div className="mt-3 space-y-2">
             {peeks > 0 && (
               <Field label="Why look again? (kept in the record)">
                 <TextArea className="min-h-[50px] font-sans" value={reason} onChange={(e) => setReason(e.target.value)}
@@ -740,168 +852,141 @@ function ExperimentRunPanel({ experiment }: { experiment: Experiment }) {
             )}
             <Toggle checked={ack} onChange={setAck} disabled={!registered}
               label="I will not change the system in response to this result before concluding." />
-            <Button variant="neon" className="gap-1.5"
-              disabled={!registered || !ack || running || start.isPending || (peeks > 0 && !reason.trim())}
+            <Button size="sm" variant="neon" className="gap-1.5 text-xs"
+              disabled={!registered || !ack || running || start.isPending || concluded || (peeks > 0 && !reason.trim())}
               onClick={() => start.mutate('holdout')}>
-              <ShieldAlert className="h-4 w-4" /> Evaluate on holdout
+              <ShieldAlert className="h-3.5 w-3.5" /> Evaluate on holdout
             </Button>
           </div>
-        </Panel>
+        </section>
       </div>
       <JobBar jobId={jobId} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Run history" icon={History} subtitle="Every run this experiment made. None are ever dropped.">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <section className="rounded-xl border border-white/8 bg-black/20 p-3">
+          <p className="mb-2 text-xs font-medium">Run history <span className="font-normal text-muted-foreground">— every run, none dropped</span></p>
           {mine.length === 0 ? <NoRuns /> : (
-            <table className="w-full text-xs">
-              <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                <tr><th className="py-1 pr-2">run</th><th className="pr-2">arm</th><th className="pr-2">split</th><th className="pr-2">{METRIC_INFO[experiment.criteria.primary_metric]?.short}</th><th>status</th></tr>
-              </thead>
-              <tbody>
-                {mine.map((r) => (
-                  <tr key={r.id} className="border-t border-white/5">
-                    <td className="py-1 pr-2 font-mono text-[10px]">{r.id}</td>
-                    <td className="pr-2"><span className="mr-1 inline-block h-2 w-2 rounded-sm" style={{ background: r.arm === 'baseline' ? VIZ.baseline : VIZ.treatment }} />{r.arm}</td>
-                    <td className="pr-2">{r.split === 'holdout' ? <Pill tone="info">holdout</Pill> : 'dev'}</td>
-                    <td className="pr-2 font-mono">{fmt3(r.aggregates[experiment.criteria.primary_metric]?.mean)}</td>
-                    <td><Pill tone={r.status === 'done' ? 'good' : r.status === 'failed' ? 'bad' : 'warn'}>{r.status}</Pill></td>
+            <>
+              <table className="w-full text-xs">
+                <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="py-1 pr-2">run</th>
+                    <th className="pr-2">arm</th>
+                    <th className="pr-2">split</th>
+                    <th className="pr-2">{METRIC_INFO[experiment.criteria.primary_metric]?.short}</th>
+                    <th>status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {slice.map((r) => (
+                    <tr key={r.id} className="border-t border-white/5">
+                      <td className="py-1.5 pr-2 font-mono text-[10px] text-muted-foreground">{r.id}</td>
+                      <td className="pr-2">
+                        <span className="mr-1 inline-block h-2 w-2 rounded-sm" style={{ background: r.arm === 'baseline' ? VIZ.baseline : VIZ.treatment }} />
+                        {r.arm}
+                      </td>
+                      <td className="pr-2">{r.split === 'holdout' ? <Pill tone="info">holdout</Pill> : 'dev'}</td>
+                      <td className="pr-2 font-mono">{fmt3(r.aggregates[experiment.criteria.primary_metric]?.mean)}</td>
+                      <td><Pill tone={r.status === 'done' ? 'good' : r.status === 'failed' ? 'bad' : 'warn'}>{r.status}</Pill></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Pager page={safePage} pageSize={REPORT_PAGE} total={mine.length} onPage={setPage} />
+            </>
           )}
-        </Panel>
-        <Panel title="Holdout access log" icon={ShieldAlert}>
+        </section>
+        <section className="rounded-xl border border-white/8 bg-black/20 p-3">
+          <p className="mb-2 text-xs font-medium">Holdout access log</p>
           {experiment.holdout_access.length === 0 ? (
-            <p className="text-xs text-muted-foreground">The holdout has not been evaluated.</p>
+            <p className="py-6 text-center text-xs text-muted-foreground">The holdout has not been evaluated.</p>
           ) : (
             <ol className="space-y-2 text-xs">
               {experiment.holdout_access.map((a, i) => (
-                <li key={i} className="rounded-md border border-white/8 p-2">
+                <li key={i} className="rounded-lg border border-white/8 bg-black/25 px-3 py-2">
                   <p className="font-mono text-[10px] text-muted-foreground">#{i + 1} · {fmtTime(a.at)} · {a.run_ids.length} run(s)</p>
-                  <p>{a.reason || <span className="text-muted-foreground">first evaluation</span>}</p>
+                  <p className="mt-0.5">{a.reason || <span className="text-muted-foreground">first evaluation</span>}</p>
                 </li>
               ))}
             </ol>
           )}
-        </Panel>
+        </section>
       </div>
     </div>
   );
 }
 
-/* ── Report ──────────────────────────────────────────────────────────────── */
-
-function ExperimentReportView({ experiment }: { experiment: Experiment }) {
-  const [split, setSplit] = useState<Split>(experiment.holdout_access.length ? 'holdout' : 'dev');
-  const [method, setMethod] = useState<IntervalMethod>('bootstrap');
-  const [note, setNote] = useState('');
-  const { data: report, isFetching, isError } = useExperimentReport(experiment.id, split, true);
-  const conclude = useEvalMutation((n: string) => evalApi.conclude(experiment.id, n),
-    { success: 'Experiment concluded', invalidate: [evalKeys.experiments as unknown as unknown[]] });
-
-  const header = (
-    <div className="flex flex-wrap items-center gap-3">
-      <Segmented value={split} onChange={setSplit}
-        options={[{ value: 'dev', label: 'dev · exploratory' }, { value: 'holdout', label: 'holdout · confirmatory' }]} />
-      {isFetching && <span className="text-xs text-muted-foreground">bootstrapping…</span>}
-      {report?.status === 'ok' && (
-        <Button size="sm" variant="ghost" className="ml-auto gap-1.5 text-xs"
-          onClick={() => downloadText(`${experiment.id}-${split}-report.json`, JSON.stringify(report, null, 2))}>
-          <Download className="h-3.5 w-3.5" /> Export report
-        </Button>
-      )}
-    </div>
-  );
-
-  if (isError || !report) return <div className="space-y-4">{header}<Panel title="Report" icon={FileBarChart}><div className="h-24" /></Panel></div>;
-  if (report.status !== 'ok') {
-    return (
-      <div className="space-y-4">
-        {header}
-        <Panel title="Report" icon={FileBarChart}>
-          <NoRuns>Missing runs on <strong>{split}</strong> for: {report.missing?.join(', ')}. Score both arms above.</NoRuns>
-          <WarningList warnings={report.warnings} />
-        </Panel>
-      </div>
-    );
-  }
-
+function VerdictChapter({
+  experiment, report, split, method, setMethod, note, setNote, conclude,
+}: {
+  experiment: Experiment;
+  report: ExperimentReport;
+  split: Split;
+  method: IntervalMethod;
+  setMethod: (m: IntervalMethod) => void;
+  note: string;
+  setNote: (n: string) => void;
+  conclude: ReturnType<typeof useEvalMutation<string>>;
+}) {
   const primaryKey = report.criteria.primary_metric;
   const primary = report.metrics![primaryKey];
   const verdict = VERDICT[report.decision!.verdict];
+  const facts = [
+    { label: 'Δ mean (paired)', value: fmtSigned(primary.delta.mean), sub: `n = ${primary.delta.n} pairs` },
+    { label: `${Math.round(report.criteria.confidence * 100)}% CI`, value: `[${fmtSigned(primary.delta.low)}, ${fmtSigned(primary.delta.high)}]`, sub: primary.delta.significant ? 'excludes 0' : 'crosses 0' },
+    { label: 'Cluster CI', value: `[${fmtSigned(primary.delta.cluster.low)}, ${fmtSigned(primary.delta.cluster.high)}]`, sub: `${primary.delta.cluster.clusters} document clusters` },
+    { label: 'p (sign-flip shuffle)', value: primary.delta.p_permutation.toFixed(3), sub: `W/L/T ${primary.delta.wins}/${primary.delta.losses}/${primary.delta.ties}` },
+    { label: 'Effect size d_z', value: primary.delta.effect_size_dz !== undefined ? primary.delta.effect_size_dz.toFixed(2) : '—', sub: 'mean Δ ÷ sd(Δ) — inflated when most Δ are 0' },
+    { label: 'p (paired t)', value: primary.delta.p_ttest !== undefined ? primary.delta.p_ttest.toFixed(3) : '—', sub: 'assumes normal deltas — compare with shuffle' },
+    { label: 'p (Holm-adjusted)', value: primary.delta.p_holm !== undefined ? primary.delta.p_holm.toFixed(3) : '—', sub: `family: primary + ${experiment.secondary_metrics.length} secondary` },
+  ];
 
   return (
     <div className="space-y-4">
-      {header}
-
-      {/* Decision */}
-      <div className={cn('rounded-xl border p-4', verdict.cls)}>
+      <section className={cn('rounded-2xl border p-4 sm:p-5', verdict.cls)}>
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-display text-lg font-bold">{verdict.label}</p>
+          <p className="font-display text-xl font-bold tracking-tight">{verdict.label}</p>
           <Pill tone={report.confirmatory ? 'good' : 'warn'}>{report.confirmatory ? 'confirmatory' : 'exploratory — not a decision'}</Pill>
           <Pill>{METRIC_INFO[primaryKey].label} @ k={report.criteria.k}</Pill>
           <Pill>{report.criteria.direction} · min effect {report.criteria.min_effect}</Pill>
         </div>
-        <p className="mt-1.5 text-sm text-foreground">{report.decision!.headline}</p>
+        <p className="mt-2 text-sm text-foreground">{report.decision!.headline}</p>
         {report.decision!.reasons.length > 0 && (
-          <ul className="mt-1 list-inside list-disc text-xs text-muted-foreground">{report.decision!.reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+          <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+            {report.decision!.reasons.map((r) => <li key={r} className="flex gap-2"><span className="text-neon/70">·</span><span>{r}</span></li>)}
+          </ul>
         )}
-      </div>
+      </section>
 
       <WarningList warnings={report.warnings} />
 
-      <div className="grid gap-4 2xl:grid-cols-2">
-        <Panel title={`Primary · ${METRIC_INFO[primaryKey].label}`} icon={Flag}
-          actions={<Segmented size="xs" value={method} onChange={setMethod}
-            options={[{ value: 'bootstrap', label: 'bootstrap' }, { value: 't', label: 't-dist' }, { value: 'cluster', label: 'cluster' }]} />}>
-          <div className="space-y-3">
-            <ArmIntervals baseline={primary.baseline} treatment={primary.treatment} method={method}
-              labels={[report.baseline_variant!.name, report.treatment_variant!.name]} />
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-              <Stat label="Δ mean (paired)" value={fmtSigned(primary.delta.mean)} sub={`n = ${primary.delta.n} pairs`} />
-              <Stat label={`${Math.round(report.criteria.confidence * 100)}% CI`} value={<span className="text-sm">[{fmtSigned(primary.delta.low)}, {fmtSigned(primary.delta.high)}]</span>}
-                sub={primary.delta.significant ? 'excludes 0' : 'crosses 0'} />
-              <Stat label="Cluster CI" value={<span className="text-sm">[{fmtSigned(primary.delta.cluster.low)}, {fmtSigned(primary.delta.cluster.high)}]</span>}
-                sub={`${primary.delta.cluster.clusters} document clusters`} />
-              <Stat label="p (sign-flip shuffle)" value={primary.delta.p_permutation.toFixed(3)} sub={`W/L/T ${primary.delta.wins}/${primary.delta.losses}/${primary.delta.ties}`} />
-            </div>
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-              <Stat label="Effect size d_z" value={primary.delta.effect_size_dz !== undefined ? primary.delta.effect_size_dz.toFixed(2) : '—'}
-                sub="mean Δ ÷ sd(Δ) — inflated when most Δ are 0" />
-              <Stat label="p (paired t)" value={primary.delta.p_ttest !== undefined ? primary.delta.p_ttest.toFixed(3) : '—'}
-                sub="assumes normal deltas — compare with shuffle" />
-              <Stat label="p (Holm-adjusted)" value={primary.delta.p_holm !== undefined ? primary.delta.p_holm.toFixed(3) : '—'}
-                sub={`family: primary + ${experiment.secondary_metrics.length} secondary`} />
-            </div>
-            {report.primary_bootstrap && report.primary_bootstrap.length > 0 && (
-              <div>
-                <p className="mb-1 text-xs font-medium">Bootstrap distribution of the paired Δ — the interval is its two tails</p>
-                <BinnedHistogram bins={report.primary_bootstrap} unit="resamples" formatX={(v) => v.toFixed(3)}
-                  markers={[
-                    { x: 0, label: '0' },
-                    ...(primary.delta.low !== null ? [{ x: primary.delta.low, label: 'CI lo', color: VIZ.baseline }] : []),
-                    ...(primary.delta.high !== null ? [{ x: primary.delta.high, label: 'CI hi', color: VIZ.baseline }] : []),
-                    {
-                      x: report.criteria.direction === 'increase' ? report.criteria.min_effect : -report.criteria.min_effect,
-                      label: report.criteria.direction === 'non_inferior' ? 'margin' : 'min effect',
-                      color: VIZ.good,
-                    },
-                  ]} />
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <section className="rounded-xl border border-white/8 bg-black/20 p-3">
+          <p className="mb-2 text-xs font-medium">Primary · {METRIC_INFO[primaryKey].label}</p>
+          <dl className="grid gap-px overflow-hidden rounded-lg border border-white/8 bg-white/5 sm:grid-cols-2">
+            {facts.map((f) => (
+              <div key={f.label} className="bg-black/40 px-3 py-2">
+                <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{f.label}</dt>
+                <dd className="mt-0.5 font-mono text-sm font-semibold tabular-nums">{f.value}</dd>
+                <dd className="text-[11px] text-muted-foreground">{f.sub}</dd>
               </div>
-            )}
-            <PrincipalNote title="Which interval to believe">
-              <strong>Bootstrap</strong> resamples your questions, so it respects the bounded, often bimodal shape of the
-              scores. The <strong>t-interval</strong> assumes normality (the CLT has not kicked in at small n) — watch it
-              spill outside [0, 1]. The <strong>cluster</strong> bootstrap resamples whole answer documents: when questions
-              share a document they fail together, the effective n is the number of clusters, and the honest interval is
-              wider. A 95% confidence level describes the procedure — 95% of intervals built this way cover the truth —
-              not a 95% chance that <em>this</em> one does.
-            </PrincipalNote>
+            ))}
+          </dl>
+        </section>
+        <section className="rounded-xl border border-white/8 bg-black/20 p-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-medium">Arm intervals</p>
+            <Segmented size="xs" value={method} onChange={setMethod}
+              options={[{ value: 'bootstrap', label: 'bootstrap' }, { value: 't', label: 't-dist' }, { value: 'cluster', label: 'cluster' }]} />
           </div>
-        </Panel>
+          <ArmIntervals baseline={primary.baseline} treatment={primary.treatment} method={method}
+            labels={[report.baseline_variant!.name, report.treatment_variant!.name]} />
+        </section>
+      </div>
 
-        <Panel title="All metrics · paired deltas" icon={Scale} subtitle="Shaded: region meeting the minimum effect. Only the primary decides.">
+      <div className="grid gap-3 2xl:grid-cols-2">
+        <section className="rounded-xl border border-white/8 bg-black/20 p-3">
+          <p className="mb-2 text-xs font-medium">All metrics · paired deltas <span className="font-normal text-muted-foreground">— shaded: min effect. Only the primary decides.</span></p>
           <ForestPlot
             minEffect={report.criteria.min_effect}
             direction={report.criteria.direction}
@@ -914,86 +999,39 @@ function ExperimentReportView({ experiment }: { experiment: Experiment }) {
               };
             })}
           />
-        </Panel>
-      </div>
-
-      <div className="grid gap-4 2xl:grid-cols-2">
-        <Panel title="Per-query distribution" icon={FileBarChart} subtitle="Where does the mean come from?">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="mb-1 text-xs font-medium">Scores by arm</p>
-              <ScoreHistogram height={140} series={[
-                { label: report.baseline_variant!.name, values: report.per_query!.map((r) => r.baseline), color: VIZ.baseline },
-                { label: report.treatment_variant!.name, values: report.per_query!.map((r) => r.treatment), color: VIZ.treatment },
+        </section>
+        {report.primary_bootstrap && report.primary_bootstrap.length > 0 && (
+          <section className="rounded-xl border border-white/8 bg-black/20 p-3">
+            <p className="mb-2 text-xs font-medium">Bootstrap distribution of the paired Δ <span className="font-normal text-muted-foreground">— the interval is its two tails</span></p>
+            <BinnedHistogram bins={report.primary_bootstrap} unit="resamples" formatX={(v) => v.toFixed(3)}
+              markers={[
+                { x: 0, label: '0' },
+                ...(primary.delta.low !== null ? [{ x: primary.delta.low, label: 'CI lo', color: VIZ.baseline }] : []),
+                ...(primary.delta.high !== null ? [{ x: primary.delta.high, label: 'CI hi', color: VIZ.baseline }] : []),
+                {
+                  x: report.criteria.direction === 'increase' ? report.criteria.min_effect : -report.criteria.min_effect,
+                  label: report.criteria.direction === 'non_inferior' ? 'margin' : 'min effect',
+                  color: VIZ.good,
+                },
               ]} />
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-medium">Paired deltas (treatment − baseline)</p>
-              <ScoreHistogram height={140} zeroLine bins={20} domain={[-1, 1]}
-                series={[{ label: 'Δ', values: report.per_query!.map((r) => r.delta), color: VIZ.muted }]} />
-            </div>
-          </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Most deltas are usually exactly 0 — pairing cancels per-question difficulty, so the comparison rests on the few
-            questions that changed. That is why paired intervals are narrower than comparing two means.
-          </p>
-        </Panel>
-        <Panel title="Biggest per-query changes" icon={AlertTriangle}>
-          <div className="max-h-[300px] overflow-auto">
-            <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-background/90 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                <tr><th className="py-1 pr-2">item</th><th className="pr-2">query</th><th className="pr-2">trap</th><th className="pr-2 text-right">base</th><th className="pr-2 text-right">treat</th><th className="text-right">Δ</th></tr>
-              </thead>
-              <tbody>
-                {[...report.per_query!].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).map((r) => (
-                  <tr key={r.item_id} className="border-t border-white/5">
-                    <td className="py-1 pr-2 font-mono text-[10px]">{r.item_id}</td>
-                    <td className="max-w-[220px] truncate pr-2" dir="auto" title={r.query}>{r.query}</td>
-                    <td className="pr-2 text-muted-foreground">{r.trap}</td>
-                    <td className="pr-2 text-right font-mono">{fmt3(r.baseline)}</td>
-                    <td className="pr-2 text-right font-mono">{fmt3(r.treatment)}</td>
-                    <td className={cn('text-right font-mono', r.delta > 0 ? 'text-emerald-400' : r.delta < 0 ? 'text-red-400' : 'text-muted-foreground')}>{fmtSigned(r.delta)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Panel>
+          </section>
+        )}
       </div>
 
-      <div className="grid gap-4 2xl:grid-cols-3">
-        <StrataPanel report={report} />
-        <Panel title="Power & guardrails" icon={ShieldAlert}>
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-2">
-              <Stat label="sd(Δ)" value={fmt3(report.power!.sd_delta)} />
-              <Stat label="Detectable" value={report.power!.mde !== null ? `±${report.power!.mde.toFixed(3)}` : '—'} sub={`n = ${report.power!.n}`} />
-              <Stat label="n for min effect" value={report.power!.n_needed_for_min_effect ?? '—'} />
-            </div>
-            {report.guardrails!.length > 0 ? (
-              <table className="w-full text-xs">
-                <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground"><tr><th className="py-1">guardrail</th><th>Δ</th><th>CI low</th><th>max drop</th><th /></tr></thead>
-                <tbody>
-                  {report.guardrails!.map((g) => (
-                    <tr key={g.metric} className="border-t border-white/5">
-                      <td className="py-1">{METRIC_INFO[g.metric]?.label ?? g.metric}</td>
-                      <td className="font-mono">{fmtSigned(g.delta)}</td>
-                      <td className="font-mono">{fmtSigned(g.low)}</td>
-                      <td className="font-mono">−{g.max_drop}</td>
-                      <td>{g.passed ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <XCircle className="h-3.5 w-3.5 text-red-400" />}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : <p className="text-xs text-muted-foreground">No guardrails registered.</p>}
-          </div>
-        </Panel>
-        <IntegrityPanel report={report} experiment={experiment} />
-      </div>
+      <PrincipalNote title="Which interval to believe">
+        <strong>Bootstrap</strong> resamples your questions, so it respects the bounded, often bimodal shape of the
+        scores. The <strong>t-interval</strong> assumes normality (the CLT has not kicked in at small n) — watch it
+        spill outside [0, 1]. The <strong>cluster</strong> bootstrap resamples whole answer documents: when questions
+        share a document they fail together, the effective n is the number of clusters, and the honest interval is
+        wider. A 95% confidence level describes the procedure — 95% of intervals built this way cover the truth —
+        not a 95% chance that <em>this</em> one does.
+      </PrincipalNote>
 
       {split === 'holdout' && experiment.status === 'registered' && report.confirmatory && (
-        <Panel title="Conclude" icon={Lock} subtitle="Freezes this decision into the experiment record. No more runs afterwards.">
-          <div className="flex flex-wrap items-end gap-3">
+        <section className="rounded-xl border border-neon/30 bg-neon/[0.05] p-4">
+          <p className="flex items-center gap-2 text-sm font-medium"><Lock className="h-4 w-4 text-neon" /> Conclude</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">Freezes this decision into the experiment record. No more runs afterwards.</p>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
             <Field label="Conclusion note" className="min-w-[280px] flex-1">
               <TextField value={note} onChange={(e) => setNote(e.target.value)} placeholder="What will you do with this result?" />
             </Field>
@@ -1001,8 +1039,133 @@ function ExperimentReportView({ experiment }: { experiment: Experiment }) {
               <Lock className="h-4 w-4" /> Conclude experiment
             </Button>
           </div>
-        </Panel>
+        </section>
       )}
+    </div>
+  );
+}
+
+function QueriesChapter({ report }: { report: ExperimentReport }) {
+  const [page, setPage] = useState(1);
+  const rows = useMemo(
+    () => [...(report.per_query ?? [])].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)),
+    [report.per_query],
+  );
+  useEffect(() => { setPage(1); }, [report.experiment_id, report.split, rows.length]);
+  const totalPages = Math.max(1, Math.ceil(rows.length / REPORT_PAGE));
+  const safePage = Math.min(page, totalPages);
+  const slice = rows.slice((safePage - 1) * REPORT_PAGE, safePage * REPORT_PAGE);
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-xl border border-white/8 bg-black/20 p-3">
+        <p className="mb-2 text-xs font-medium">Per-query distribution <span className="font-normal text-muted-foreground">— where the mean comes from</span></p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <p className="mb-1 text-[11px] text-muted-foreground">Scores by arm</p>
+            <ScoreHistogram height={140} series={[
+              { label: report.baseline_variant!.name, values: report.per_query!.map((r) => r.baseline), color: VIZ.baseline },
+              { label: report.treatment_variant!.name, values: report.per_query!.map((r) => r.treatment), color: VIZ.treatment },
+            ]} />
+          </div>
+          <div>
+            <p className="mb-1 text-[11px] text-muted-foreground">Paired deltas (treatment âˆ’ baseline)</p>
+            <ScoreHistogram height={140} zeroLine bins={20} domain={[-1, 1]}
+              series={[{ label: 'Δ', values: report.per_query!.map((r) => r.delta), color: VIZ.muted }]} />
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Most deltas are usually exactly 0 — pairing cancels per-question difficulty, so the comparison rests on the few
+          questions that changed. That is why paired intervals are narrower than comparing two means.
+        </p>
+      </section>
+
+      <section className="rounded-xl border border-white/8 bg-black/20 p-3">
+        <p className="mb-2 text-xs font-medium">Biggest per-query changes</p>
+        <table className="w-full text-xs">
+          <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="py-1 pr-2">item</th>
+              <th className="pr-2">query</th>
+              <th className="pr-2">trap</th>
+              <th className="pr-2 text-right">base</th>
+              <th className="pr-2 text-right">treat</th>
+              <th className="text-right">Δ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {slice.map((r) => (
+              <tr key={r.item_id} className="border-t border-white/5">
+                <td className="py-1.5 pr-2 font-mono text-[10px] text-muted-foreground">{r.item_id}</td>
+                <td className="max-w-[220px] truncate pr-2" dir="auto" title={r.query}>{r.query}</td>
+                <td className="pr-2 text-muted-foreground">{r.trap}</td>
+                <td className="pr-2 text-right font-mono">{fmt3(r.baseline)}</td>
+                <td className="pr-2 text-right font-mono">{fmt3(r.treatment)}</td>
+                <td className={cn('text-right font-mono', r.delta > 0 ? 'text-emerald-400' : r.delta < 0 ? 'text-red-400' : 'text-muted-foreground')}>{fmtSigned(r.delta)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <Pager page={safePage} pageSize={REPORT_PAGE} total={rows.length} onPage={setPage} />
+      </section>
+
+      <StrataPanel report={report} />
+    </div>
+  );
+}
+
+function RecordChapter({ experiment, report }: { experiment: Experiment; report: ExperimentReport }) {
+  return (
+    <div className="space-y-4">
+      <WarningList warnings={report.warnings} />
+      <div className="grid gap-3 lg:grid-cols-3">
+        <Stat label="sd(Δ)" value={fmt3(report.power!.sd_delta)} />
+        <Stat label="Detectable" value={report.power!.mde !== null ? `±${report.power!.mde.toFixed(3)}` : '—'} sub={`n = ${report.power!.n}`} />
+        <Stat label="n for min effect" value={report.power!.n_needed_for_min_effect ?? '—'} />
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-2">
+        <section className="rounded-xl border border-white/8 bg-black/20 p-3">
+          <p className="mb-2 text-xs font-medium">Guardrails</p>
+          {report.guardrails!.length > 0 ? (
+            <table className="w-full text-xs">
+              <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                <tr><th className="py-1 pr-2">guardrail</th><th className="pr-2">Δ</th><th className="pr-2">CI low</th><th className="pr-2">max drop</th><th /></tr>
+              </thead>
+              <tbody>
+                {report.guardrails!.map((g) => (
+                  <tr key={g.metric} className="border-t border-white/5">
+                    <td className="py-1.5 pr-2">{METRIC_INFO[g.metric]?.label ?? g.metric}</td>
+                    <td className="pr-2 font-mono">{fmtSigned(g.delta)}</td>
+                    <td className="pr-2 font-mono">{fmtSigned(g.low)}</td>
+                    <td className="pr-2 font-mono">âˆ’{g.max_drop}</td>
+                    <td>{g.passed ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <XCircle className="h-3.5 w-3.5 text-red-400" />}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : <p className="text-xs text-muted-foreground">No guardrails registered.</p>}
+        </section>
+        <section className="rounded-xl border border-white/8 bg-black/20 p-3">
+          <p className="mb-2 text-xs font-medium">Integrity <span className="font-normal text-muted-foreground">— everything that could make this number less than it seems</span></p>
+          <dl className="space-y-1 font-mono text-[11px]">
+            <div className="flex justify-between gap-3"><dt className="text-muted-foreground">registered hash</dt><dd>{shortHash(experiment.dataset_hash)}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted-foreground">holdout looks</dt><dd className={experiment.holdout_access.length > 1 ? 'text-amber-300' : ''}>{experiment.holdout_access.length}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-muted-foreground">runs (all splits)</dt><dd>{report.all_runs.length}</dd></div>
+          </dl>
+          <div className="mt-2 max-h-52 overflow-auto">
+            {report.all_runs.map((r) => (
+              <div key={r.id} className={cn('flex items-center gap-2 border-t border-white/5 py-1.5 text-xs', r.used_in_report ? 'text-foreground' : 'text-muted-foreground')}>
+                <span className="h-2 w-2 rounded-sm" style={{ background: r.arm === 'baseline' ? VIZ.baseline : VIZ.treatment }} />
+                <span className="truncate font-mono text-[10px]">{r.id}</span>
+                <span className="text-[10px]">{r.split}</span>
+                <span className="ml-auto font-mono text-[10px]">{fmt3(r.primary_mean)}</span>
+                {r.used_in_report && <Pill tone="neon">in report</Pill>}
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

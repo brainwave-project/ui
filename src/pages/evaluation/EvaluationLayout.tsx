@@ -13,16 +13,6 @@ const PAGE_INTRO: { prefix: string; title: string; blurb: string }[] = [
     title: 'Retrieval',
     blurb: 'Probe one query, score a split, then compare A/B runs.',
   },
-  {
-    prefix: '/evaluation/stats',
-    title: 'Stats Lab',
-    blurb: 'Simulations where the true mean is known — bootstrap, CI coverage, CLT, power, and p-hacking.',
-  },
-  {
-    prefix: '/evaluation/learn',
-    title: 'Learning Path',
-    blurb: 'Verified missions against lab state, plus reflections on what you saw and why.',
-  },
 ];
 
 export function EvaluationLayout() {

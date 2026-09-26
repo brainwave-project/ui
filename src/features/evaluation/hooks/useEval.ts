@@ -132,7 +132,9 @@ export function useJob(jobId: string | null) {
     qc.invalidateQueries({ queryKey: ['eval', 'report'] });
     qc.invalidateQueries({ queryKey: ['eval', 'pool'] });
     qc.invalidateQueries({ queryKey: ['eval', 'candidates'] });
-    qc.invalidateQueries({ queryKey: ['eval', 'learning'] });
+    qc.invalidateQueries({ queryKey: ['eval', 'gen'] });
+    qc.invalidateQueries({ queryKey: ['eval', 'judge'] });
+    qc.invalidateQueries({ queryKey: ['eval', 'gate'] });
     if (status === 'failed') addToast({ type: 'error', message: query.data?.error ?? 'Job failed' });
     untrack(jobId);
   }, [jobId, status]); // eslint-disable-line react-hooks/exhaustive-deps

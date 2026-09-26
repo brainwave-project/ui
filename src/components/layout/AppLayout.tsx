@@ -15,7 +15,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/evaluation/retrieval':   'Evaluation · Retrieval',
   '/evaluation/experiments': 'Evaluation · Experiments',
   '/evaluation/stats':       'Evaluation · Stats Lab',
-  '/evaluation/learn':       'Evaluation · Learning Path',
   '/activity':             'Activity',
   '/admin':                'Administration',
   '/governance':           'Platform Governance',

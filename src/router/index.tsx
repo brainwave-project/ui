@@ -22,7 +22,9 @@ import { DataLabPage }             from '@/pages/evaluation/DataLabPage';
 import { RetrievalEvalPage }       from '@/pages/evaluation/RetrievalEvalPage';
 import { ExperimentsPage, ExperimentCreatePage, ExperimentDetailPage } from '@/pages/evaluation/ExperimentsPage';
 import { StatsLabPage }            from '@/pages/evaluation/StatsLabPage';
-import { LearningPathPage }        from '@/pages/evaluation/LearningPathPage';
+import { GenerationPage }          from '@/pages/evaluation/GenerationPage';
+import { JudgeLabPage }            from '@/pages/evaluation/JudgeLabPage';
+import { ReleaseGatePage }         from '@/pages/evaluation/ReleaseGatePage';
 
 /**
  * Evaluation — backed by the standalone Eval Lab API on the lean eval stack.
@@ -45,7 +47,10 @@ const evaluationRoute: RouteObject = {
     { path: 'experiments/new', element: <ExperimentCreatePage /> },
     { path: 'experiments/:experimentId', element: <ExperimentDetailPage /> },
     { path: 'stats',        element: <StatsLabPage /> },
-    { path: 'learn',        element: <LearningPathPage /> },
+    { path: 'generation',   element: <GenerationPage /> },
+    { path: 'judges',       element: <JudgeLabPage /> },
+    { path: 'gate',         element: <ReleaseGatePage /> },
+    { path: 'learn',        element: <Navigate to="/evaluation/stats" replace /> },
   ],
 };
 

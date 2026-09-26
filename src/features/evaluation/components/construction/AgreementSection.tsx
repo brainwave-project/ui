@@ -201,7 +201,7 @@ export function AgreementSection({ bundle }: { bundle: DatasetBundle }) {
             </div>
             <p className="text-[11px] text-muted-foreground">
               Simulate Auditing fabricates a second rater from gold (~80% agreement) and stamps it
-              <strong> simulated</strong> — agreement numbers appear, but the Learning Path will not count it as real judging.
+              <strong> simulated</strong> — agreement numbers appear, but this is not a real judgement round.
             </p>
 
             {task && !item && (

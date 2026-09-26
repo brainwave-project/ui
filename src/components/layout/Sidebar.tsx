@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, LogOut, Activity, ClipboardList, ShieldCheck,
   MessageSquare, SlidersHorizontal, Boxes, Workflow, FlaskConical, FolderArchive, ChevronDown,
-  Gauge, Database, Search, Scale, Sigma, GraduationCap, Settings2,
+  Gauge, Database, Search, Scale, Sigma, Settings2, MessageSquareQuote, Gavel, GitPullRequestArrow,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -29,7 +29,9 @@ const EVALUATION: NavItem[] = [
   { to: '/evaluation/retrieval',   icon: Search,        label: 'Retrieval'     },
   { to: '/evaluation/experiments', icon: Scale,         label: 'Experiments'   },
   { to: '/evaluation/stats',       icon: Sigma,         label: 'Stats Lab'     },
-  { to: '/evaluation/learn',       icon: GraduationCap, label: 'Learning Path' },
+  { to: '/evaluation/generation',  icon: MessageSquareQuote, label: 'Generation' },
+  { to: '/evaluation/judges',      icon: Gavel,         label: 'Judge Lab'     },
+  { to: '/evaluation/gate',        icon: GitPullRequestArrow, label: 'Release Gate' },
 ];
 
 /** Account + platform operations — everything that is not a knowledge or evaluation workflow. */
