@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, LogOut, Activity, ClipboardList, ShieldCheck,
   MessageSquare, SlidersHorizontal, Boxes, Workflow, FlaskConical, FolderArchive, ChevronDown,
-  Gauge, Database, Search, Scale, Sigma, Settings2, MessageSquareQuote, Gavel, GitPullRequestArrow,
+  Gauge, Database, Search, Scale, Sigma, Settings2, MessageSquareQuote, Gavel, GitPullRequestArrow, Languages,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -27,6 +27,7 @@ const KNOW_OPS: NavItem[] = [
 const EVALUATION: NavItem[] = [
   { to: '/evaluation/dataset',     icon: Database,      label: 'Golden Sets'   },
   { to: '/evaluation/retrieval',   icon: Search,        label: 'Retrieval'     },
+  { to: '/evaluation/normalization', icon: Languages,   label: 'Arabic Norm'    },
   { to: '/evaluation/experiments', icon: Scale,         label: 'Experiments'   },
   { to: '/evaluation/stats',       icon: Sigma,         label: 'Stats Lab'     },
   { to: '/evaluation/generation',  icon: MessageSquareQuote, label: 'Generation' },

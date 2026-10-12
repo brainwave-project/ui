@@ -2,7 +2,7 @@
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  AlertTriangle, ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight,
+  ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, ChevronRight,
   ClipboardCheck, Download, FileBarChart, Flag, History, ListOrdered, Lock, Play, Plus, Save,
   Scale, Search, ShieldAlert, Trash2, XCircle,
 } from 'lucide-react';
@@ -926,7 +926,7 @@ function VerdictChapter({
   setMethod: (m: IntervalMethod) => void;
   note: string;
   setNote: (n: string) => void;
-  conclude: ReturnType<typeof useEvalMutation<string>>;
+  conclude: ReturnType<typeof useEvalMutation<string, Experiment>>;
 }) {
   const primaryKey = report.criteria.primary_metric;
   const primary = report.metrics![primaryKey];
@@ -1195,31 +1195,6 @@ function StrataPanel({ report }: { report: ExperimentReport }) {
         </tbody>
       </table>
       <p className="mt-2 text-[10px] text-muted-foreground">No intervals per stratum on purpose: at these sizes they would be too wide to read. Use strata to find where to look, not to claim.</p>
-    </Panel>
-  );
-}
-
-function IntegrityPanel({ report, experiment }: { report: ExperimentReport; experiment: Experiment }) {
-  return (
-    <Panel title="Integrity" icon={History} subtitle="Everything that could make this number less than it seems.">
-      <div className="space-y-2 text-xs">
-        <dl className="space-y-1 font-mono text-[11px]">
-          <div className="flex justify-between"><dt className="text-muted-foreground">registered hash</dt><dd>{shortHash(experiment.dataset_hash)}</dd></div>
-          <div className="flex justify-between"><dt className="text-muted-foreground">holdout looks</dt><dd className={experiment.holdout_access.length > 1 ? 'text-amber-300' : ''}>{experiment.holdout_access.length}</dd></div>
-          <div className="flex justify-between"><dt className="text-muted-foreground">runs (all splits)</dt><dd>{report.all_runs.length}</dd></div>
-        </dl>
-        <div className="max-h-44 overflow-auto">
-          {report.all_runs.map((r) => (
-            <div key={r.id} className={cn('flex items-center gap-2 border-t border-white/5 py-1', r.used_in_report && 'text-foreground', !r.used_in_report && 'text-muted-foreground')}>
-              <span className="h-2 w-2 rounded-sm" style={{ background: r.arm === 'baseline' ? VIZ.baseline : VIZ.treatment }} />
-              <span className="truncate font-mono text-[10px]">{r.id}</span>
-              <span className="text-[10px]">{r.split}</span>
-              <span className="ml-auto font-mono text-[10px]">{fmt3(r.primary_mean)}</span>
-              {r.used_in_report && <Pill tone="neon">in report</Pill>}
-            </div>
-          ))}
-        </div>
-      </div>
     </Panel>
   );
 }

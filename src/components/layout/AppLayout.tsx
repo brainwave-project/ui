@@ -13,6 +13,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/evaluation/dataset':     'Evaluation · Golden Sets',
   '/evaluation/data-lab':    'Evaluation · Golden Sets',
   '/evaluation/retrieval':   'Evaluation · Retrieval',
+  '/evaluation/normalization': 'Evaluation · Arabic Norm',
   '/evaluation/experiments': 'Evaluation · Experiments',
   '/evaluation/stats':       'Evaluation · Stats Lab',
   '/activity':             'Activity',

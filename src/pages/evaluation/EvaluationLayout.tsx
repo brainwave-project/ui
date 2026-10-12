@@ -22,6 +22,7 @@ export function EvaluationLayout() {
   const { datasetId, version, select } = useEvalStore();
   const onGoldenSets = pathname.startsWith('/evaluation/dataset');
   const onExperiments = pathname.startsWith('/evaluation/experiments');
+  const onNormalization = pathname.startsWith('/evaluation/normalization');
   const rows = datasets.data ?? [];
   const intro = PAGE_INTRO.find((p) => pathname.startsWith(p.prefix));
 
@@ -36,7 +37,7 @@ export function EvaluationLayout() {
   }, [datasets.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const offline = status.isError;
-  const showDatasetSelect = !onGoldenSets && !onExperiments && rows.length > 0;
+  const showDatasetSelect = !onGoldenSets && !onExperiments && !onNormalization && rows.length > 0;
 
   return (
     <div>
@@ -65,10 +66,13 @@ export function EvaluationLayout() {
           <div className="space-y-1.5">
             <p className="font-medium">The Eval Lab API is not reachable.</p>
             <p className="text-xs text-muted-foreground">
-              It runs on the lean evaluation stack, not the dev stack. Start it, then reload:
+              {onNormalization
+                ? 'Arabic Norm only needs the Eval Lab API. Start it locally, then reload:'
+                : 'It runs on the lean evaluation stack, not the dev stack. Start it, then reload:'}
             </p>
             <pre className="flex items-center gap-2 rounded-md bg-black/40 px-3 py-2 font-mono text-xs text-foreground">
-              <Terminal className="h-3.5 w-3.5 text-neon" /> cd infra &amp;&amp; make evals-lab
+              <Terminal className="h-3.5 w-3.5 text-neon" />
+              {onNormalization ? 'cd agent-hub; uv run python -m agent_hub.eval.lab' : 'cd infra && make evals-lab'}
             </pre>
             <p className="text-xs text-muted-foreground">
               Vite proxies <code className="font-mono">/api/eval</code> to <code className="font-mono">localhost:3005</code>
@@ -84,8 +88,10 @@ export function EvaluationLayout() {
         <div className="pointer-events-none fixed bottom-4 right-4 z-40">
           <div className="pointer-events-auto flex flex-wrap justify-end gap-1.5 rounded-full border border-white/10 bg-[hsl(var(--card)/0.85)] px-2.5 py-1.5 shadow-panel backdrop-blur-md">
             <Pill tone={offline ? 'bad' : 'good'}>eval-api {offline ? 'offline' : 'up'}</Pill>
-            <Pill tone={status.data?.know_hub ? 'good' : 'warn'}>know-hub {status.data?.know_hub ? 'up' : 'down'}</Pill>
-            <Pill tone={status.data?.know_hub_grpc ? 'good' : 'warn'}>gRPC {status.data?.know_hub_grpc ? 'up' : 'down'}</Pill>
+            {!onNormalization && <>
+              <Pill tone={status.data?.know_hub ? 'good' : 'warn'}>know-hub {status.data?.know_hub ? 'up' : 'down'}</Pill>
+              <Pill tone={status.data?.know_hub_grpc ? 'good' : 'warn'}>gRPC {status.data?.know_hub_grpc ? 'up' : 'down'}</Pill>
+            </>}
           </div>
         </div>,
         document.body,
